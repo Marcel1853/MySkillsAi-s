@@ -16,23 +16,19 @@ end)
 script.on_event(defines.events.on_player_crafted_item, function(event)
   if not storage.quality_display or not storage.quality_display.enabled then return end
 
-  local recipe = event.recipe
-  if not recipe then return end
+  -- Use event.item_stack.quality (LuaQualityPrototype) — recipe.products[].quality does NOT exist
+  local item_stack = event.item_stack
+  if not item_stack or not item_stack.valid_for_read then return end
 
-  -- Check if recipe produces quality items
-  local results = recipe.products
-  if results then
-    for _, product in pairs(results) do
-      if product.quality and product.quality.name ~= "normal" then
-        local player = game.get_player(event.player_index)
-        if player and storage.quality_display.show_quality_alerts then
-          player.print(string.format(
-            "Crafted %s with quality: %s",
-            product.name,
-            product.quality.name
-          ))
-        end
-      end
+  local quality = item_stack.quality  -- LuaQualityPrototype
+  if quality and quality.name ~= "normal" then
+    local player = game.get_player(event.player_index)
+    if player and storage.quality_display.show_quality_alerts then
+      player.print(string.format(
+        "Crafted %s with quality: %s",
+        item_stack.name,
+        quality.name
+      ))
     end
   end
 end)
@@ -55,16 +51,22 @@ commands.add_command("check-quality", "Check the quality of the selected entity"
       selected.name,
       quality.name
     ))
-    player.print(string.format(
-      "  Health: %.0f/%.0f",
-      selected.health,
-      selected.max_health
-    ))
-    player.print(string.format(
-      "  Shield: %.0f/%.0f",
-      selected.shield or 0,
-      selected.max_shield or 0
-    ))
+    if selected.health then
+      player.print(string.format(
+        "  Health: %.0f/%.0f",
+        selected.health,
+        selected.max_health
+      ))
+    end
+    -- selected.shield / selected.max_shield do NOT exist on LuaEntity;
+    -- use selected.grid.shield / selected.grid.max_shield (equipment grid)
+    if selected.grid then
+      player.print(string.format(
+        "  Shield: %.0f/%.0f",
+        selected.grid.shield or 0,
+        selected.grid.max_shield or 0
+      ))
+    end
   else
     player.print("Entity has no quality: " .. selected.name)
   end

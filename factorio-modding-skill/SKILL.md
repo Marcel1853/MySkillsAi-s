@@ -111,23 +111,48 @@ When the user asks about Factorio modding:
 
 ## Navigation
 
-| Topic | Reference | Example |
-|-------|-----------|---------|
-| Data lifecycle: when each file runs, storage rules | `references/data-lifecycle.md` | `examples/basic-mod/` |
-| Mod settings (bool, int, double, string) | `references/01-settings-stage.md` | `examples/basic-mod/settings.lua` |
-| Entities, items, recipes, technologies, tiles | `references/02-prototype-stage.md` | `examples/basic-mod/prototypes/` |
-| Space Age: planets, asteroids, quality, platforms | `references/03-space-age-prototypes.md` | `examples/space-age/custom-planet-example.lua` |
-| Runtime: events, storage, LuaEntity, LuaPlayer | `references/04-runtime-api.md` | `examples/runtime-stage/event-tracking-mod.lua` |
-| Custom GUIs & Inventories | `references/05-gui-api.md` | `examples/gui/custom-gui-example.lua` |
-| Circuit networks & combinators | `references/06-circuit-network.md` | `examples/circuits/circuit-control-example.lua` |
-| All Factorio events | `references/07-events.md` | — |
-| Extended runtime classes (LuaForce, LuaTech, etc.) | `references/08-additional-runtime.md` | — |
-| Enums and constants (defines.*) | `references/09-defines.md` | — |
-| Trains: schedules, interrupts, groups, stops | `references/10-trains.md` | `examples/trains/train-dispatcher.lua` |
-| Rendering & visualization | `references/rendering-api.md` | — |
-| Graphics style guide (reference only, no API) | `references/11-graphics-and-art.md` | — |
-| Core Developer role (API rules only) | `references/12-ai-personas.md` | — |
-| Locale reference (EN + DE templates) | `references/13-locale-reference.md` | — |
+### 🏗️ Data Lifecycle & Settings
+| Reference | Description |
+|-----------|-------------|
+| [data-lifecycle.md](references/data-lifecycle.md) | **Wann läuft welche Datei?** Settings → Prototype → Runtime Stage, `storage`-Regeln, `on_init`/`on_load`/`on_configuration_changed`-Sequenz, Multiplayer-Join-Verhalten |
+| [01-settings-stage.md](references/01-settings-stage.md) | Mod-Konfiguration: `bool`, `int`, `double`, `string` Setting-Typen, `settings.lua`/`settings-updates.lua`/`settings-final-fixes.lua`, Default-Werte und Bereichsgrenzen |
+
+### 🔧 Prototype Stage (data.lua)
+| Reference | Description |
+|-----------|-------------|
+| [02-prototype-stage.md](references/02-prototype-stage.md) | Entities, Items, Recipes, Technologies, Tiles, Fluids, Equipment — alle Prototype-Typen mit Pflichtfeldern, `data.lua`/`data-updates.lua`/`data-final-fixes.lua` Patterns |
+| [03-space-age-prototypes.md](references/03-space-age-prototypes.md) | **Space Age DLC:** Planeten, Space Locations, Asteroiden, Quality-Tiers, Space Platforms, Cargo Pods, Thruster, Oberflächen-Eigenschaften |
+
+### ⚙️ Runtime Stage (control.lua)
+| Reference | Description |
+|-----------|-------------|
+| [04-runtime-api.md](references/04-runtime-api.md) | **Kern-API:** `script`, `game`, `LuaEntity`, `LuaPlayer`, `LuaSurface`, `LuaItemStack`, `LuaInventory`, `LuaForce`, Fluid-API (2.1 Overhaul), `prototypes` Read-Only-Zugriff, 2.1 Breaking Changes |
+| [07-events.md](references/07-events.md) | **Alle Factorio-Events:** `defines.events.*` vollständig katalogisiert — Build/Mine/Craft/Combat/Train/Platform/GUI-Events mit Event-Filter-Patterns |
+| [08-additional-runtime.md](references/08-additional-runtime.md) | Erweiterte Runtime-Klassen: `LuaForce`, `LuaTechnology`, `LuaRecipe`, `LuaTrain`, `LuaSchedule`, `LuaSpacePlatform`, `LuaLogisticNetwork`, `LuaTransportLine` |
+| [09-defines.md](references/09-defines.md) | Enums & Konstanten: `defines.events`, `defines.direction`, `defines.inventory`, `defines.train_state`, `defines.comparator`, `defines.wire_type`, `defines.control_behavior` |
+
+### 🖥️ GUI & Circuit Network
+| Reference | Description |
+|-----------|-------------|
+| [05-gui-api.md](references/05-gui-api.md) | Custom GUIs: `LuaGuiElement`-Typen, `player.gui.screen`/`top`/`left`/`relative`, Event-Handler, Inventar-GUI-Elemente (2.1+), Choose-Elem-Button |
+| [06-circuit-network.md](references/06-circuit-network.md) | Schaltungsnetz: Red/Green Wire, `LuaCircuitNetwork`, Combinator-Verhalten (Decider/Arithmetic/Constant/Selector), Signal-Typen, Entity-Steuerung via Circuit |
+
+### 🚂 Trains & Rendering
+| Reference | Description |
+|-----------|-------------|
+| [10-trains.md](references/10-trains.md) | **Zug-System 2.1:** `LuaSchedule`-API, Schedule-Interrupts, Train-Groups, Wait-Conditions (`full`/`empty`/`time`/`inactivity`/`circuit`), `LuaTrain`, `LuaLocomotive` |
+| [rendering-api.md](references/rendering-api.md) | Visualisierung: `rendering.draw_line/circle/text/sprite/animation`, persistente Render-Objekte, `time_to_live`, Draw-on-Ground, Farben und Scale |
+
+### 🎨 Graphics & Locale
+| Reference | Description |
+|-----------|-------------|
+| [11-graphics-and-art.md](references/11-graphics-and-art.md) | Grafik-Styleguide (nur Referenz, keine API): Sprite-Formate, Icon-Größen, Entity-Animationen, Technology-Icons, Factorio-Art-Style-Konventionen |
+| [13-locale-reference.md](references/13-locale-reference.md) | Lokalisierung: `.cfg`-Format, EN + DE Templates, `LocalisedString`-Patterns, GUI-Texte, Item/Entity/Technology-Beschreibungen, Pluralformen |
+
+### 🤖 AI Personas
+| Reference | Description |
+|-----------|-------------|
+| [⭐ 12-ai-personas.md](references/12-ai-personas.md) | **Core Developer Role:** API-Regeln, Prototype-Validierung, Data-Lifecycle-Constraints, häufige Fehlerquellen, Best Practices für KI-gestütztes Factorio-Modding — **Pflichtlektüre für AI-gestützte Mod-Entwicklung** |
 
 ## The Three Stages
 

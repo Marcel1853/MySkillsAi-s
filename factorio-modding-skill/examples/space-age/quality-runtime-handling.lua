@@ -37,11 +37,13 @@ end)
 -- ===== QUALITY CHECKING =====
 
 -- Check an entity's quality
+-- NOTE: entity.quality is a LuaQualityPrototype (read-only), NOT a string.
+-- Use entity.quality.name for the string name and entity.quality.level for the tier level.
 script.on_event(defines.events.on_built_entity, function(event)
   local entity = event.entity
   if entity.quality then
-    local quality_name = entity.quality
-    local quality_level = prototypes.quality[quality_name].level
+    local quality_name = entity.quality.name       -- LuaQualityPrototype → string
+    local quality_level = entity.quality.level      -- LuaQualityPrototype → uint
 
     if quality_level >= 3 then  -- Epic or better
       local player = game.get_player(event.player_index)
@@ -53,14 +55,16 @@ script.on_event(defines.events.on_built_entity, function(event)
 end)
 
 -- Check an item stack's quality
+-- NOTE: item_stack.quality is a LuaQualityPrototype (read-only), NOT a string.
+-- Use quality.name for the string and quality.level for the tier.
 script.on_event(defines.events.on_player_crafted_item, function(event)
   local item_stack = event.item_stack
   if item_stack and item_stack.valid_for_read then
-    local quality = item_stack.quality
-    if quality and quality ~= "normal" then
+    local quality = item_stack.quality  -- LuaQualityPrototype
+    if quality and quality.name ~= "normal" then
       local player = game.get_player(event.player_index)
       if player then
-        player.print("Crafted " .. quality .. " quality " .. item_stack.name .. "!")
+        player.print("Crafted " .. quality.name .. " quality " .. item_stack.name .. "!")
       end
     end
   end
@@ -69,9 +73,10 @@ end)
 -- ===== QUALITY MODIFIERS =====
 
 -- Quality affects various entity stats
+-- entity.quality IS the LuaQualityPrototype itself — no need to look it up via prototypes.quality
 local function get_quality_bonus(entity)
   if not entity.quality then return 1.0 end
-  local quality_proto = prototypes.quality[entity.quality]
+  local quality_proto = entity.quality  -- LuaQualityPrototype directly
   if not quality_proto then return 1.0 end
 
   -- Higher quality = better stats
@@ -96,18 +101,20 @@ end)
 script.on_event(defines.events.on_player_crafted_item, function(event)
   local item_stack = event.item_stack
   if item_stack and item_stack.valid_for_read then
-    local quality = item_stack.quality or "normal"
-    storage.quality_stats[quality] = (storage.quality_stats[quality] or 0) + item_stack.count
+    -- item_stack.quality is LuaQualityPrototype; use .name for string key
+    local quality_name = item_stack.quality and item_stack.quality.name or "normal"
+    storage.quality_stats[quality_name] = (storage.quality_stats[quality_name] or 0) + item_stack.count
   end
 end)
 
 -- ===== QUALITY-AWARE RECIPES =====
 
 -- Check if a recipe supports quality
+-- 2.1 runtime property: can_set_quality (not allow_quality)
 local function recipe_supports_quality(recipe_name)
   local recipe_proto = prototypes.recipe[recipe_name]
   if recipe_proto then
-    return recipe_proto.allow_quality or false
+    return recipe_proto.can_set_quality or false
   end
   return false
 end
@@ -118,14 +125,17 @@ end
 script.on_configuration_changed(function(event)
   if event.mod_changes["quality-examples"] then
     -- Migrate existing items to new quality system
+    -- NOTE: stack.quality is read-only! Use set_stack() to re-create the stack with a new quality.
     for _, player in pairs(game.players) do
       local inv = player.get_main_inventory()
       for i = 1, #inv do
         local stack = inv[i]
-        if stack.valid_for_read and not stack.quality then
-          -- Item was created before quality system existed
-          -- Set it to normal quality
-          stack.quality = "normal"
+        if stack.valid_for_read and (not stack.quality or stack.quality.name ~= "normal") then
+          -- Item was created before quality system existed or has wrong quality
+          -- Re-create the stack with normal quality via set_stack()
+          local item_name = stack.name
+          local item_count = stack.count
+          stack.set_stack({name = item_name, count = item_count, quality = "normal"})
         end
       end
     end
@@ -168,8 +178,9 @@ script.on_event(defines.events.on_entity_damaged, function(event)
   if not entity or not entity.valid then return end
 
   -- Higher quality entities take less damage
+  -- entity.quality is LuaQualityPrototype directly — no lookup needed
   if entity.quality then
-    local quality_proto = prototypes.quality[entity.quality]
+    local quality_proto = entity.quality  -- LuaQualityPrototype
     if quality_proto and quality_proto.level > 0 then
       local reduction = 1.0 - (quality_proto.level * 0.05)  -- 5% less per level
       -- Apply reduction (conceptual - actual damage is already applied)

@@ -28,10 +28,12 @@ script.on_event(defines.events.on_space_platform_changed_state, function(event)
   ))
 
   -- Alert players when platform arrives
+  -- Use platform.hub.force.add_custom_alert instead of per-player loop
   if event.new_state == "arrived" and storage.sp_monitor.alert_on_landing then
-    for _, player in pairs(game.connected_players) do
-      player.add_custom_alert(
-        platform.hub,
+    local hub = platform.hub
+    if hub and hub.valid then
+      hub.force.add_custom_alert(
+        hub,
         {type = "item", name = "space-platform-starter-pack"},
         {"", "Platform '", platform.name, "' has arrived!"},
         true  -- show on map
