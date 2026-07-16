@@ -635,6 +635,8 @@ recipe_proto.name
 recipe_proto.energy        -- crafting time
 recipe_proto.ingredients   -- array
 recipe_proto.results       -- array
+recipe_proto.can_set_quality -- boolean (2.1+): can player set quality for this recipe?
+recipe_proto.get_product_quality(index, recipe_quality?) -- 2.1+: get product LuaQualityPrototype
 
 -- Access fluid prototypes
 local fluid_proto = prototypes.fluid["water"]
@@ -649,10 +651,16 @@ tech_proto.effects          -- array of effects
 tech_proto.prerequisites    -- array
 
 -- Access quality prototypes (Space Age)
+-- NOTE: entity.quality and item_stack.quality return a LuaQualityPrototype directly (read-only).
+-- You do NOT need to look it up via prototypes.quality[name] — the object itself has .name, .level, etc.
 local quality_proto = prototypes.quality["rare"]
-quality_proto.name
-quality_proto.level         -- 2
-quality_proto.order         -- "c"
+quality_proto.name              -- "rare"
+quality_proto.level             -- 2
+quality_proto.order             -- "c"
+quality_proto.next              -- LuaQualityPrototype or nil (next higher tier)
+quality_proto.previous          -- LuaQualityPrototype or nil (next lower tier)
+quality_proto.default_multiplier -- number (default stat multiplier for this tier)
+quality_proto.color             -- Color (display color for this quality tier)
 
 -- Iterate all prototypes of a type
 for name, proto in pairs(prototypes.item) do
@@ -713,7 +721,7 @@ local stack = player.get_main_inventory()[1]
 if stack.valid_for_read then
   stack.name          -- "iron-plate"
   stack.count         -- number
-  stack.quality       -- string (Space Age)
+  stack.quality       -- LuaQualityPrototype (read-only, Space Age; use .name for string)
   stack.durability    -- number (for tools/weapons)
   stack.is_blueprint  -- boolean
   stack.is_blueprint_book  -- boolean

@@ -128,15 +128,13 @@ script.on_nth_tick(3600, function(event)
       local hub = surface.get_entity(platform.hub_unit_number)
       if hub and hub.valid then
         if hub.health < config.health_alert_threshold then
-          -- Alert all players
-          for _, player in pairs(game.connected_players) do
-            player.add_custom_alert(
-              hub,
-              {type = "item", name = "space-platform-hub"},
-              {"", "⚠️ Platform hub on ", platform.surface, " is damaged! Health: ", hub.health},
-              true
-            )
-          end
+          -- Alert the force that owns the hub (one call instead of per-player loop)
+          hub.force.add_custom_alert(
+            hub,
+            {type = "item", name = "space-platform-hub"},
+            {"", "⚠️ Platform hub on ", platform.surface, " is damaged! Health: ", hub.health},
+            true
+          )
         end
       else
         -- Hub was destroyed, clean up

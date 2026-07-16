@@ -31,7 +31,7 @@ local function setup_circuit_monitoring()
               type = "assembling-machine",
             })
             for _, assembler in ipairs(assemblers) do
-              -- assembler.crafting_active = true  -- if supported
+              assembler.disabled_by_script = false  -- 2.1 way to enable entity (NOT entity.active write!)
             end
           end
         end
@@ -91,18 +91,13 @@ local function check_thresholds()
         -- Check all signals
         for signal_id, data in pairs(network.signals) do
           if data.count >= threshold then
-            -- Threshold reached! Alert nearby players
-            for _, player in pairs(game.connected_players) do
-              local dist = player.position.x - chest.position.x
-              if math.abs(dist) < 100 then
-                player.add_custom_alert(
-                  chest,
-                  {type = "virtual", name = "signal-A"},
-                  {"", "Alert: ", signal_id.name, " exceeded threshold (", data.count, ")"},
-                  true
-                )
-              end
-            end
+            -- Threshold reached! Alert the force that owns the chest
+            chest.force.add_custom_alert(
+              chest,
+              {type = "virtual", name = "signal-A"},
+              {"", "Alert: ", signal_id.name, " exceeded threshold (", data.count, ")"},
+              true
+            )
           end
         end
       end

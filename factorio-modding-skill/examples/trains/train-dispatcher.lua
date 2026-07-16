@@ -209,10 +209,12 @@ script.on_event(defines.events.on_train_changed_state, function(event)
   -- Problemzustaende behandeln
   if new_state == defines.train_state.no_path then
     if storage.config.alert_on_stuck then
-      for _, player in pairs(game.connected_players) do
-        player.print("Zug " .. train.id .. " hat keine Route! Gleise pruefen.")
-        player.add_custom_alert(
-          train.front_stock,
+      game.print("Zug " .. train.id .. " hat keine Route! Gleise pruefen.")
+      -- Use train.front_stock.force.add_custom_alert instead of per-player loop
+      local front = train.front_stock
+      if front and front.valid then
+        front.force.add_custom_alert(
+          front,
           { type = "item", name = "locomotive" },
           { "", "Zug ", train.id, " hat den Weg verloren!" },
           true
