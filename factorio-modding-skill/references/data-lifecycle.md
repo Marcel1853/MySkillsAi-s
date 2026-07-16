@@ -1,5 +1,7 @@
 # Definitive Guide: Factorio Mod File Lifecycle
 
+> **⚠️ Version-Hinweis:** Stand Factorio 2.1.11 experimental. Bei Unsicherheit über verfügbare Globals/Methoden IMMER gegen die offizielle Doku verifizieren: [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/). Factorio 2.1 (experimental) ändert sich wöchentlich. Der Lifecycle selbst (settings → prototype → runtime) ist stabil seit 2.0.
+
 ## Table of Contents
 
 - [The Three Stages](#the-three-stages)

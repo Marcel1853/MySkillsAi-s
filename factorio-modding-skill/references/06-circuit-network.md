@@ -1,5 +1,7 @@
 # Circuit Network API Reference
 
+> **⚠️ Version-Hinweis:** Stand Factorio 2.1.11 experimental. Bei Unsicherheit über aktuelle Circuit-APIs IMMER gegen die offizielle Doku verifizieren: [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/). Factorio 2.1 (experimental) ändert sich wöchentlich. Wichtige 2.1-Änderungen: `circuit_exclusive_mode_of_operation` ENTFERNT — nutze `set_requests` + `read_contents`; Labs, Pipes, Boilers, Heat Exchangers jetzt Circuit-verbindbar (2.1.7+); `LuaControlBehavior::input_networks` / `output_networks` read/write (2.1+); "Universe" Mode für Radar (2.1.7+); Selector Combinator "Time" Mode (2.1.7+).
+
 Factorio's circuit network connects entities via wires, allowing mods to read and write signals, and control behavior.
 
 ## Wire Types
@@ -57,7 +59,7 @@ local behavior = cc.get_control_behavior()
 if behavior then
   -- Set section 1, slot 1
   behavior.set_slot(1, {
-    signal = {type: "item", name = "iron-plate"},
+    signal = {type = "item", name = "iron-plate"},
     count = 100,
     index = 1,  -- slot index (1-20 for constant combinator)
   })
@@ -140,7 +142,7 @@ end)
 ## Example: Circuit-Controlled Assembling Machine
 
 ```lua
--- Check circuit condition before crafting
+-- Monitor a circuit signal and disable/enable entity via script
 script.on_event(defines.events.on_tick, function(event)
   if event.tick % 60 ~= 0 then return end  -- check every second
   
@@ -151,14 +153,13 @@ script.on_event(defines.events.on_tick, function(event)
     })
     
     for _, machine in ipairs(machines) do
-      local network = machine.get_circuit_network(defines.wire_type.red)
-      if network then
-        local signal = network.signals[{type = "virtual", name = "signal-A"}]
-        if signal and signal.count > 0 then
-          machine.get_control_behavior().circuit_condition_satisfied = true
-        else
-          machine.get_control_behavior().circuit_condition_satisfied = false
-        end
+      local behavior = machine.get_control_behavior()
+      if behavior then
+        -- Read the circuit condition result (read-only!)
+        -- circuit_condition_satisfied tells you if the condition is met
+        local satisfied = behavior.circuit_condition_satisfied
+        -- Use disabled_by_script to control the entity (NOT entity.active write!)
+        machine.disabled_by_script = not satisfied
       end
     end
   end
@@ -221,11 +222,38 @@ behavior.circuit_condition = {
 
 ```lua
 local behavior = requester_chest.get_control_behavior()
--- 2.0 rename: circuit_mode_of_operation → circuit_exclusive_mode_of_operation
-behavior.set_requests = true
-behavior.read_contents = true  -- only send section signals, not inventory contents
+
+-- ⚠️ 2.1: circuit_exclusive_mode_of_operation is REMOVED!
+-- Use set_requests and read_contents together directly:
+behavior.set_requests = true    -- 2.1+: direct read/write property
+behavior.read_contents = true   -- 2.1+: direct read/write property
 behavior.circuit_read_logistics = true
 behavior.circuit_read_contents = true
+```
+
+## 2.1.7+ New Circuit-Connectable Entities
+
+> **New in 2.1.7:** The following entities can now be connected to the circuit network:
+> - **Labs** — Read contents, read current research cost, read technology level, set current research via conditions
+> - **Pipes & Pipes-to-Ground** — Read pipeline contents and fluid temperature
+> - **Storage Tanks** — Read pipeline contents and fluid temperature
+> - **Boilers & Heat Exchangers** — Circuit-connectable
+> - **Land Mines** — Circuit-connectable
+> - **Heat Pipes** — Circuit-connectable
+> - **Radar** — "Universe" mode of operation for cross-surface signal transfer (2.1.7+)
+>
+> Verify full control behavior properties at [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/).
+
+## Selector Combinator — "Time" Mode (2.1.7+)
+
+```lua
+local sc = entity  -- a selector-combinator
+local behavior = sc.get_control_behavior()
+
+if behavior then
+  behavior.selector = "time"  -- "pick-first", "pick-last", "pick-random", "count", "time" (2.1.7+)
+  -- "time" mode reads: game tick, time of day, duration of a day
+end
 ```
 
 ## LuaArtilleryTurretControlBehavior

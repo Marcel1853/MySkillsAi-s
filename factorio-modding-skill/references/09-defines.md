@@ -1,4 +1,6 @@
-# Definites Reference (Factorio 2.1)
+# Defines Reference (Factorio 2.1)
+
+> **⚠️ Version-Hinweis:** Stand Factorio 2.1.11 experimental. Bei Unsicherheit über aktuelle defines IMMER gegen die offizielle Doku verifizieren: [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/). Factorio 2.1 ist experimental und ändert sich wöchentlich. Insbesondere `defines.control_behavior` und `defines.entity_status` wurden in 2.1 stark erweitert.
 
 ## Table of Contents
 
@@ -32,29 +34,8 @@
 - [defines.quality](#defines.quality)
 - [defines.surface_property](#defines.surface_property)
 - [defines.circuit_connector](#defines.circuit_connector)
+- [defines.comparator](#defines.comparator)
 - [Commonly Used Utility Constants](#commonly-used-utility-constants)
-
-
-- [defines.events](#)
-- [defines.direction](#)
-- [defines.inventory](#)
-- [defines.wire_type](#)
-- [defines.control_behavior](#)
-- [defines.logistic_mode](#)
-- [defines.build_check_type](#)
-- [defines.train_state](#)
-- [defines.difficulty](#)
-- [defines.command](#)
-- [defines.distraction](#)
-- [defines.entity_status](#)
-- [defines.alert_type](#)
-- [defines.prototypes](#)
-- [defines.quality](#)
-- [defines.surface_property](#)
-- [defines.circuit_connector](#)
-- [Commonly Used Utility Constants](#)
-
-
 
 This document lists the most commonly used `defines.*` constants and enums in the Factorio 2.1 API.
 
@@ -138,6 +119,7 @@ defines.events.on_cargo_pod_delivered_cargo
 defines.events.on_cargo_pod_finished_ascending
 defines.events.on_cargo_pod_finished_descending
 defines.events.on_cargo_pod_started_ascending
+defines.events.on_space_platform_changed_state
 ```
 
 ### GUI
@@ -156,6 +138,7 @@ defines.events.on_gui_closed
 defines.events.on_gui_hover
 defines.events.on_gui_leave
 defines.events.on_gui_selected_tab_changed
+defines.events.on_gui_inventory_action  -- 2.1: new inventory GUI element event
 ```
 
 ### Combat / AI
@@ -230,7 +213,7 @@ defines.events.on_object_destroyed
 
 ```lua
 defines.direction.north      -- 0
-defines.direction.northeast  -- 1
+defines.direction.northeast  -- 1  -- 2.0+: 8 directions now available
 defines.direction.east       -- 2
 defines.direction.southeast  -- 3
 defines.direction.south      -- 4
@@ -239,30 +222,75 @@ defines.direction.west       -- 6
 defines.direction.northwest  -- 7
 ```
 
+> **Migration note (2.0):** If mods stored direction values in storage before 2.0, they need to multiply by 2 to convert to the new 8-direction system.
+
 ---
 
 ## defines.inventory
 
+> **⚠️ Stand: Factorio 2.1.11 experimental.** The `assembling_machine_*` and `furnace_*` values were replaced by unified `crafter_*` values in 2.0. Verify at [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/).
+
 ```lua
+-- Character inventories
 defines.inventory.character_main          -- Main character inventory
 defines.inventory.character_guns          -- Gun slots
 defines.inventory.character_ammo          -- Ammo slots
 defines.inventory.character_armor         -- Armor slots
 defines.inventory.character_trash         -- Trash slots
-defines.inventory.character_vehicle      -- Vehicle slots
-defines.inventory.crafter_input  -- Input slots
-defines.inventory.crafter_output -- Output slots
-defines.inventory.crafter_modules -- Module slots
-defines.inventory.crafter_input          -- Furnace input
-defines.inventory.crafter_output          -- Furnace output
-defines.inventory.crafter_modules         -- Furnace module slots
-defines.inventory.furnace_fuel            -- Furnace fuel
-defines.inventory.rocket                  -- Rocket cargo
+defines.inventory.character_vehicle       -- Vehicle slots
+
+-- Unified crafter inventories (2.0+ — replaces assembling_machine_* and furnace_*)
+defines.inventory.crafter_input           -- Input slots (assemblers, furnaces, etc.)
+defines.inventory.crafter_output          -- Output slots
+defines.inventory.crafter_modules         -- Module slots
+defines.inventory.crafter_trash           -- Crafter trash slots (2.0+)
+
+-- Lab inventories
+defines.inventory.lab_input               -- Lab input (science packs)
+defines.inventory.lab_modules             -- Lab module slots
+defines.inventory.lab_trash               -- Lab trash slots (2.0+)
+
+-- Fuel inventories
+defines.inventory.fuel                    -- Fuel inventory (burner entities)
+defines.inventory.burnt_result            -- Burnt fuel result
+
+-- Chest/Container inventories
+defines.inventory.chest                   -- Main chest inventory
+
+-- Roboport inventories
+defines.inventory.roboport_robot          -- Stationed robots
+defines.inventory.roboport_material       -- Repair packs/materials
+
+-- Robot inventories
+defines.inventory.robot_cargo             -- Logistic/construction robot cargo
+defines.inventory.robot_repair            -- Robot repair packs
+
+-- Vehicle inventories
 defines.inventory.car_trunk               -- Car storage
 defines.inventory.car_ammo                -- Car ammo
 defines.inventory.cargo_wagon             -- Cargo wagon
-defines.inventory.logistic_robot          -- Logistic robot cargo
-defines.inventory.construction_robot      -- Construction robot cargo
+
+-- Other inventories
+defines.inventory.beacon_modules          -- Beacon module slots
+defines.inventory.turret_ammo             -- Turret ammo
+defines.inventory.mining_drill_modules    -- Mining drill module slots
+defines.inventory.rocket_silo_rocket      -- Rocket cargo
+defines.inventory.rocket_silo_result      -- Rocket result
+defines.inventory.item_main               -- Item-with-inventory main
+
+-- Space Age inventories (2.0+)
+defines.inventory.asteroid_collector_output  -- Asteroid collector (2.0+)
+defines.inventory.linked_container_main      -- Linked container (2.0+)
+defines.inventory.agricultural_tower_input   -- Agricultural tower input (2.0+)
+defines.inventory.agricultural_tower_output  -- Agricultural tower output (2.0+)
+
+-- ⚠️ REMOVED in 2.0+ (use crafter_* instead):
+-- defines.inventory.assembling_machine_input   → crafter_input
+-- defines.inventory.assembling_machine_output  → crafter_output
+-- defines.inventory.assembling_machine_modules → crafter_modules
+-- defines.inventory.furnace_source             → crafter_input
+-- defines.inventory.furnace_result             → crafter_output
+-- defines.inventory.furnace_modules            → crafter_modules
 ```
 
 ---
@@ -278,12 +306,21 @@ defines.wire_type.green   -- Green wire
 
 ## defines.control_behavior
 
+> **⚠️ Stand: Factorio 2.1.11 experimental.** This section was significantly expanded in 2.1. Verify at [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/).
+
 ```lua
 defines.control_behavior.disabled
 defines.control_behavior.enable_disable
 defines.control_behavior.set_threshold
 defines.control_behavior.set_bar
 defines.control_behavior.set_requests
+
+-- ⚠️ REMOVED in 2.1:
+-- defines.control_behavior.logistic_container.exclusive_mode
+-- Use set_requests and read_contents on LuaLogisticContainerControlBehavior instead
+
+-- 2.1: New circuit connection types for labs, pipes, boilers, etc.
+-- See LuaControlBehavior::input_networks / output_networks in official docs
 ```
 
 ---
@@ -318,7 +355,6 @@ defines.build_check_type.script_build_ignore_ghost
 ```lua
 defines.train_state.on_the_path
 defines.train_state.wait_station
-defines.events.on_train_schedule_changed
 defines.train_state.manual_control
 defines.train_state.manual_control_stop
 defines.train_state.no_path
@@ -326,6 +362,7 @@ defines.train_state.no_schedule
 defines.train_state.arrive_signal
 defines.train_state.wait_signal
 defines.train_state.path_lost
+defines.train_state.destination_full  -- Station is full (train limit reached)
 ```
 
 ---
@@ -345,7 +382,6 @@ defines.difficulty.hard
 ```lua
 defines.command.compound
 defines.command.attack
-defines.events.on_ai_command_completed
 defines.command.build_base
 defines.command.group
 defines.command.wander
@@ -369,6 +405,8 @@ defines.distraction.by_enemy
 
 ## defines.entity_status
 
+> **⚠️ Stand: Factorio 2.1.11 experimental.** New statuses added in 2.1.0+.
+
 ```lua
 defines.entity_status.working
 defines.entity_status.normal
@@ -380,6 +418,12 @@ defines.entity_status.no_recipe
 defines.entity_status.no_ingredients
 defines.entity_status.disabled_by_control_behavior
 defines.entity_status.disabled_by_script
+
+-- 2.1 additions:
+defines.entity_status.waiting_to_clear_drop_slots   -- 2.1.0+
+defines.entity_status.too_far_from_pad_to_unload     -- 2.1.0+
+defines.entity_status.waiting_for_upgrade            -- 2.1.0+
+defines.entity_status.armed                          -- 2.1.0+ (land mines)
 ```
 
 ---
@@ -487,6 +531,25 @@ defines.circuit_connector.constant_combinator
 
 ---
 
+## defines.comparator
+
+```lua
+defines.comparator.less              -- <
+defines.comparator.less_or_equal     -- <=
+defines.comparator.equal             -- =
+defines.comparator.greater_or_equal  -- >=
+defines.comparator.greater           -- >
+defines.comparator.not_equal         -- ≠ (2.0+)
+```
+
+---
+
+## Programmable Speaker Playback Mode Change (2.1.10)
+
+> **⚠️ BREAKING RENAME in 2.1.10:** The Programmable Speaker playback mode `Global` has been renamed to `Universe`. If your mod references `"Global"` for programmable speaker playback, update it to `"Universe"`.
+
+---
+
 ## Commonly Used Utility Constants
 
 ```lua
@@ -508,4 +571,8 @@ signal = {type = "item", name = "iron-plate"}
 signal = {type = "fluid", name = "water"}
 signal = {type = "virtual", name = "signal-A"}
 signal = {type = "entity", name = "assembling-machine-2"}
+-- 2.1: additional signal types available (quality, airborne-pollutant, etc.)
+
+-- Quality in signal (2.1+)
+signal = {type = "item", name = "iron-plate", quality = "rare"}
 ```

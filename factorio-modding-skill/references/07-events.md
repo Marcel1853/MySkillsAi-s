@@ -1,5 +1,7 @@
 # Events Reference (Factorio 2.1)
 
+> **⚠️ Version-Hinweis:** Stand Factorio 2.1.11 experimental. Bei Unsicherheit über aktuelle Events IMMER gegen die offizielle Doku verifizieren: [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/). Factorio 2.1 (experimental) ändert sich wöchentlich. Wichtige 2.1-Neuerung: `on_gui_inventory_action` Event für neue `"inventory"` GUI-Elemente.
+
 Events are the primary way mods react to game actions. Register handlers with `script.on_event()`.
 
 ## Event Registration
@@ -136,6 +138,7 @@ script.raise_event(my_event, {data = "payload"})
 | `on_cargo_pod_finished_ascending` | Cargo pod left surface | `cargo_pod`, `surface_index` |
 | `on_cargo_pod_finished_descending` | Cargo pod landed | `cargo_pod`, `surface_index`, `target` |
 | `on_cargo_pod_started_ascending` | Cargo pod departed | `cargo_pod`, `surface_index` |
+| `on_space_platform_changed_state` | Platform state changed | `space_platform`, `old_state`, `new_state` |
 
 ### Rocket Events
 
@@ -170,7 +173,7 @@ script.raise_event(my_event, {data = "payload"})
 | `on_gui_hover` | Mouse entered element | `element`, `player_index` |
 | `on_gui_leave` | Mouse left element | `element`, `player_index` |
 | `on_gui_selected_tab_changed` | Tab selected | `element`, `player_index` |
-| `on_gui_confirmed` | Textfield enter confirmed | `element`, `player_index` |
+| `on_gui_inventory_action` | Inventory GUI interaction (2.1+) | `element`, `player_index` |
 
 ### Research Events
 

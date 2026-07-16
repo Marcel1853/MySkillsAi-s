@@ -1,5 +1,7 @@
 # Space Age Prototype Extensions (Factorio 2.1 DLC)
 
+> **⚠️ Version-Hinweis:** Stand Factorio 2.1.11 experimental. Bei Unsicherheit über aktuelle Prototype-Properties IMMER gegen die offizielle Doku verifizieren: [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/). Factorio 2.1 (experimental) ändert sich wöchentlich. Wichtige 2.1-Änderungen: Storage Tank Quality-Skalierung (2.1.7+), Cargo Wagon Quality (2.1.7+), Locomotive Quality (2.1.7+), Space Platform Hub Health (5000 statt 1000), Asteroid Collector Circuit Connection, Lab Circuit Connection.
+
 ## Table of Contents
 
 - [New Prototype Types](#new-prototype-types)

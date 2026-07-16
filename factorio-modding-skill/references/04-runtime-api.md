@@ -1,5 +1,7 @@
 # Runtime API Reference (control.lua)
 
+> **⚠️ Version-Hinweis:** Stand Factorio 2.1.11 experimental. Bei Unsicherheit über aktuelle Methoden/Signaturen IMMER gegen die offizielle Doku verifizieren: [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/). Factorio 2.1 ist experimental und ändert sich wöchentlich. Eigenschaften ohne expliziten Versionshinweis gelten seit 2.0+.
+
 ## Table of Contents
 
 - [Available Globals](#available-globals)
@@ -9,6 +11,7 @@
   - [Event Filters Performance Optimization](#event-filters-performance-optimization)
   - [Storage](#storage)
   - [Metatables Persistent Lua Objects](#metatables-persistent-lua-objects)
+  - [Notification Queues 2.1+](#notification-queues-21)
 - [The game Object LuaGameScript](#the-game-object-luagamescript)
   - [Players](#players)
   - [Surfaces](#surfaces)
@@ -19,6 +22,7 @@
 - [The remote Object LuaRemote](#the-remote-object-luaremote)
 - [LuaSurface — Surface Operations](#luasurface-—-surface-operations)
 - [LuaEntity — Entity Operations](#luaentity-—-entity-operations)
+- [LuaPlayer — Player Operations 2.1 Additions](#luaplayer-—-player-operations-21-additions)
 - [LuaItemStack — Item Operations](#luaitemstack-—-item-operations)
 - [LuaInventory — Inventory Operations](#luainventory-—-inventory-operations)
 - [LuaTechnology — Research](#luatechnology-—-research)
@@ -28,36 +32,19 @@
 - [LuaChunkIterator — Iterate Chunks](#luachunkiterator-—-iterate-chunks)
 - [LuaRendering — Draw Things](#luarendering-—-draw-things)
 
-
-- [Available Globals](#)
-- [The `script` Object (LuaBootstrap)](#)
-- [The `game` Object (LuaGameScript)](#)
-- [The `commands` Object (LuaCommandProcessor)](#)
-- [The `remote` Object (LuaRemote)](#)
-- [LuaSurface — Surface Operations](#)
-- [LuaEntity — Entity Operations](#)
-- [LuaItemStack — Item Operations](#)
-- [LuaInventory — Inventory Operations](#)
-- [LuaTechnology — Research](#)
-- [LuaRecipe — Recipes](#)
-- [LuaForce — Faction/Team](#)
-- [LuaTile — Tile Operations](#)
-- [LuaChunkIterator — Iterate Chunks](#)
-- [LuaRendering — Draw Things](#)
-
-
-
 The runtime stage runs during active gameplay. This is where you handle events, interact with the game world, build GUIs, and manage mod state.
 
 ## Available Globals
 
 | Global | Type | Description |
 |--------|------|-------------|
-| `script` | LuaBootstrap | Event registration, storage, metatables |
+| `script` | LuaBootstrap | Event registration, storage, metatables, notification queues (2.1+) |
 | `game` | LuaGameScript | Top-level game access (players, surfaces, forces) |
 | `commands` | LuaCommandProcessor | Custom console commands |
 | `settings` | table | Runtime settings (global and per-player) |
 | `remote` | LuaRemote | Cross-mod communication interface |
+| `helpers` | LuaHelpers | Utility functions; `is_valid_ambient_sound()`, `is_valid_animation_path()`, `stage` read (2.1+) |
+| `prototypes` | table | Read-only access to all prototypes at runtime: `prototypes.item["iron-plate"]`, `prototypes.entity["assembling-machine-3"]`, etc. (2.0+) |
 
 ## The `script` Object (LuaBootstrap)
 
@@ -94,7 +81,7 @@ end)
 ### Event Registration
 
 ```lua
--- Built-in event (using string name — preferred in 2.0)
+-- Built-in event (using string name — preferred in 2.0+)
 script.on_event("on_built_entity", function(event)
   local entity = event.entity
   game.print(entity.name .. " was built!")
@@ -191,6 +178,16 @@ local tracker = {entity = some_lua_entity}
 setmetatable(tracker, script.get_metatable("my_entity_tracker"))
 ```
 
+### Notification Queues (2.1+)
+
+```lua
+-- Create a notification queue for custom player notifications
+local queue = script.new_notification_queue()  -- Returns LuaNotificationQueue
+
+-- Use to send custom notifications to players
+-- See LuaNotificationQueue in official docs for full API
+```
+
 ---
 
 ## The `game` Object (LuaGameScript)
@@ -222,6 +219,17 @@ player.position        -- {x, y}
 player.character       -- LuaEntity (their character, or nil)
 player.get_main_inventory()  -- LuaInventory
 player.cursor_stack    -- LuaItemStack (item in hand)
+
+-- 2.1 additions (see LuaPlayer section below for details)
+player.toggle_menu_leaves_remote_view  -- read/write (2.1.9+)
+player.get_pins()      -- returns array of LuaPin (2.1.10+)
+player.clear_pins()    -- clears all pins (2.1.10+)
+player.add_pin({...})  -- now returns LuaPin (2.1.10+)
+player.hide_locked_prototypes_in_factoriopedia  -- read/write (2.1.9+)
+player.physical_surface          -- read (2.0+)
+player.physical_surface_index    -- read (2.0+)
+player.physical_vehicle          -- read (2.0+)
+player.physical_position         -- read (2.0+)
 ```
 
 ### Surfaces
@@ -285,6 +293,17 @@ force.research_queue_enabled = true
 -- Relations
 force.set_friend("enemy", false)
 force.set_friend("player", true)
+
+-- 2.1 additions
+force.is_visible()                -- check if force is visible (2.1+)
+force.set_script_visible(true)    -- set script visibility (2.1+)
+force.add_alert(...)              -- add alert (2.1+)
+force.add_custom_alert(...)       -- add custom alert (2.1+)
+force.remove_alert(...)           -- remove alert (2.1+)
+force.unlock_logistic_network     -- read/write (2.1+)
+force.unlock_travel_to_space_platforms  -- read/write (2.1+)
+force.cargo_landing_pad_limit     -- read/write (2.1+)
+force.max_cargo_bay_unloading_distance  -- read/write (2.1+)
 ```
 
 ### Entities
@@ -323,6 +342,19 @@ game.tick              -- Current game tick (60 ticks = 1 second at normal speed
 game.speed             -- Current game speed multiplier
 game.ticks_per_second  -- Usually 60
 game.paused            -- Is the game paused?
+```
+
+### Game Utility Methods (2.1+)
+
+```lua
+-- Delete blueprint library (2.1+)
+game.delete_blueprint_library()
+
+-- Auto-save with replay parameter (2.1+)
+game.auto_save("mysave", {allow_in_replay = false})
+
+-- Take technology screenshot (2.1+)
+game.take_technology_screenshot({...}, {allow_in_replay = false})
 ```
 
 ---
@@ -422,6 +454,8 @@ surface.destroy_entity(entity)  -- same as entity.destroy()
 
 ## LuaEntity — Entity Operations
 
+> **Stand: Factorio 2.1.11 experimental.** Verify at [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/).
+
 ```lua
 -- Common properties
 entity.name             -- string
@@ -435,6 +469,21 @@ entity.quality          -- string (Space Age)
 entity.valid            -- boolean (always check before using a stored reference!)
 entity.unit_number      -- unique number (use for storage, not the entity itself)
 
+-- 2.1 additions
+entity.flip             -- read (2.1.0+) — entity flip state
+entity.protected        -- read/write (2.1.0+) — entity protection flag
+entity.disabled_by_script  -- read/write — replaces entity.active write
+entity.minable_flag     -- read/write — replaces entity.minable write
+entity.script_reservations_count  -- read/write (2.1.0+)
+entity.train_reservations_count   -- read (2.1.0+)
+entity.input_flow_limit    -- read/write (2.1.0+)
+entity.output_flow_limit   -- read/write (2.1.0+)
+entity.electric_interface_mode  -- read/write (2.1.0+)
+entity.override_logistic_mode   -- read/write (2.1.0+)
+entity.autopilot_patrol_size    -- read/write (2.1.0+) — spidertron patrol
+entity.request_missing_construction_materials  -- read/write (2.1.10+)
+entity.providing_to_other_platforms            -- read/write (2.1.10+)
+
 -- Inventory access (for machines)
 local inventory = entity.get_inventory(defines.inventory.crafter_input)
 if inventory then
@@ -446,15 +495,48 @@ if inventory then
   end
 end
 
--- Fluid access
+-- Fluid access (2.0+ — LuaFluidBox removed!)
 entity.get_fluid_count("water")
-entity.insert_fluid({name = "water", amount = 100})
-entity.remove_fluid({name = "water", amount = 50})
+entity.add_fluid({name = "water", amount = 100, temperature = 15})
+entity.remove_fluid({name = "water", amount = 50})  -- new semantics in 2.0+
+entity.extract_fluid(...)  -- replaces old remove_fluid behavior
+entity.clear_fluids()
+entity.get_fluid_filter(index)
+entity.set_fluid_filter(index, name)
+entity.get_fluid_capacity(index)
+entity.get_fluid_box_prototype()
+entity.get_fluid_box_neighbours(index)
+entity.get_fluid_box_pipe_connections(index)
+
+-- Fluid segment operations (2.1.0+)
+entity.has_fluid_segment()
+entity.get_fluid_segment_fluid()
+entity.set_fluid_segment_fluid(name)
+entity.add_fluid_segment_fluid(name, amount)
+entity.clear_fluid_segment_fluid()
+entity.remove_fluid_segment_fluid(name, amount)
+entity.get_fluid_segment_filter()
+entity.get_fluid_segment_capacity()
+entity.get_fluid_segment_extent_bounding_box()
+entity.get_fluid_segment_id()
+
+-- Durability operations (2.1.0+)
+entity.clear_stored_durability()
+entity.get_stored_durability()
+entity.set_stored_durability(value)
+
+-- Tooltip field operations (2.1.0+)
+entity.clear_tooltip_fields()
+entity.get_tooltip_fields()
+entity.clear_tooltip_field(key)
+entity.get_tooltip_field(key)
+entity.set_tooltip_field(key, value)
 
 -- Deconstruction/Upgrade
 entity.order_deconstruction("player")
 entity.cancel_deconstruction("player")
 entity.order_upgrade({target = "assembling-machine-3", force = "player"})
+entity.apply_upgrade()  -- 2.1.10+: can directly upgrade without marking first
 entity.to_be_deconstructed()  -- boolean
 entity.to_be_upgraded()  -- boolean
 
@@ -469,8 +551,12 @@ local clone = entity.clone({
 entity.destroy()  -- returns boolean (true if destroyed)
 entity.die()      -- kills it with death effects
 
--- Neighbours (for walls, reactors, power switches)
-local neighbours = entity.get_neighbours()
+-- Neighbours (2.0+ — entity.neighbors removed!)
+entity.fluidbox_neighbours
+entity.underground_belt_neighbour
+entity.wall_neighbours
+entity.cliff_neighbours
+entity.neighbour_connectable_connections
 
 -- Building state
 entity.is_crafting()  -- boolean (for assembling machines, furnaces)
@@ -481,8 +567,140 @@ entity.set_recipe("my-recipe")  -- for machines with recipe support
 -- Circuit connections
 entity.get_circuit_network(defines.wire_type.red, 1)  -- wire type + connector ID
 
+-- Control behavior (2.1+)
+local behavior = entity.get_control_behavior()
+if behavior then
+  behavior.input_networks   -- read/write (2.1.0+)
+  behavior.output_networks  -- read/write (2.1.0+)
+end
+
 -- Logistics
 entity.get_logistic_network()  -- for roboport entities
+
+-- Script mining (2.0+)
+entity.mine({player = player, force = true, raise_destroyed = true})
+  -- Mines the entity as if a player mined it; returns boolean
+  -- player: optional LuaPlayer (for undo support)
+  -- force: force mining even if not normally minable
+  -- raise_destroyed: raise on_object_destroyed event
+
+-- Display panel (2.0+ record-based, 2.1: string only!)
+entity.add_record({text = "Status: OK"})
+entity.remove_record(1)
+entity.set_record(1, {text = "Warning!"})
+entity.records  -- read current records
+-- ⚠️ BREAKING 2.1: display_panel_text now accepts string ONLY, not LocalisedString!
+
+-- Cargo pod creation (2.1+ with optional entity spec)
+entity.create_cargo_pod({...})  -- can now specify target entity (2.1+)
+
+-- Send to orbit
+entity.send_to_orbit_automatically  -- read/write (2.0+)
+```
+
+---
+
+## `prototypes` — Read-Only Prototype Access at Runtime
+
+> **2.0+ feature.** Verify at [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/).
+
+```lua
+-- Access item prototypes
+local item_proto = prototypes.item["iron-plate"]
+item_proto.name          -- "iron-plate"
+item_proto.stack_size    -- 100
+item_proto.weight        -- number (Space Age)
+item_proto.place_result  -- entity name or nil
+item_proto.fuel_value    -- number or nil
+item_proto.localised_name  -- LocalisedString
+
+-- Access entity prototypes
+local entity_proto = prototypes.entity["assembling-machine-3"]
+entity_proto.name              -- "assembling-machine-3"
+entity_proto.crafting_speed    -- 1.25
+entity_proto.max_health        -- 300
+entity_proto.module_slots      -- 4
+entity_proto.collision_box     -- {{left, top}, {right, bottom}}
+-- 2.1+ additional methods:
+entity_proto.get_max_speed()         -- replaces removed max_speed read
+entity_proto.get_duration()          -- replaces removed duration read
+entity_proto.get_inventory_size_bonus()  -- quality-based inventory bonus
+entity_proto.get_fluid_usage_per_tick()  -- replaces removed fluid_usage_per_tick read
+entity_proto.get_max_power_output()      -- replaces removed max_power_output read
+entity_proto.get_pumping_speed()         -- replaces removed pumping_speed read
+
+-- Access recipe prototypes
+local recipe_proto = prototypes.recipe["iron-gear-wheel"]
+recipe_proto.name
+recipe_proto.energy        -- crafting time
+recipe_proto.ingredients   -- array
+recipe_proto.results       -- array
+
+-- Access fluid prototypes
+local fluid_proto = prototypes.fluid["water"]
+fluid_proto.name
+fluid_proto.default_temperature
+fluid_proto.heat_capacity
+
+-- Access technology prototypes
+local tech_proto = prototypes.technology["automation"]
+tech_proto.name
+tech_proto.effects          -- array of effects
+tech_proto.prerequisites    -- array
+
+-- Access quality prototypes (Space Age)
+local quality_proto = prototypes.quality["rare"]
+quality_proto.name
+quality_proto.level         -- 2
+quality_proto.order         -- "c"
+
+-- Iterate all prototypes of a type
+for name, proto in pairs(prototypes.item) do
+  log("Item: " .. name)
+end
+```
+
+---
+
+## LuaPlayer — Player Operations (2.1 Additions)
+
+> **Stand: Factorio 2.1.11 experimental.** Verify at [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/).
+
+```lua
+local player = game.get_player(1)
+
+-- Standard properties
+player.name
+player.index
+player.online
+player.force           -- LuaForce
+player.surface         -- LuaSurface
+player.position        -- {x, y}
+player.character       -- LuaEntity (or nil)
+
+-- 2.0+ additions
+player.physical_surface          -- actual surface player is viewing (remote view aware)
+player.physical_surface_index    -- index of physical surface
+player.physical_vehicle          -- vehicle entity if in one
+player.physical_position         -- position in physical surface
+
+-- 2.1.9+ additions
+player.toggle_menu_leaves_remote_view  -- read/write: if true, Escape leaves remote view instead of opening menu
+player.hide_locked_prototypes_in_factoriopedia  -- read/write: hide unresearched in Factoriopedia
+
+-- 2.1.10+ Pin system
+player.add_pin({
+  icon = {type = "item", name = "iron-plate"},
+  position = {0, 0},
+  surface = game.surfaces["nauvis"],
+})  -- now returns LuaPin (2.1.10+)
+
+player.get_pins()     -- returns array of LuaPin objects
+player.clear_pins()   -- removes all pins
+
+-- Inventory
+player.get_main_inventory()  -- LuaInventory
+player.cursor_stack    -- LuaItemStack (item in hand)
 ```
 
 ---
@@ -541,6 +759,10 @@ inv.get_item_count()  -- total items (all types)
 inv.supports_bar()  -- boolean (can set a bar/limit)
 inv.get_bar()  -- number (the bar slot)
 inv.set_bar(50)
+
+-- 2.1: get_contents() returns array with quality
+local contents = inv.get_contents()
+-- Returns: { { name = "iron-plate", count = 100, quality = "normal" }, ... }
 ```
 
 ---
@@ -610,6 +832,18 @@ force.get_kill_count("big-biter")
 -- Share character logistics
 force.character_logistic_requests = true
 force.logistic_slot_count = 10  -- number of logistic slots
+
+-- 2.1 additions
+force.is_visible()                 -- check force visibility (2.1+)
+force.set_script_visible(true)     -- set script visibility (2.1+)
+force.get_script_visible()         -- get script visibility (2.1+)
+force.add_alert(...)               -- add standard alert (2.1+)
+force.add_custom_alert(...)        -- add custom alert (2.1+)
+force.remove_alert(...)            -- remove alerts (2.1+)
+force.unlock_logistic_network      -- read/write (2.1+)
+force.unlock_travel_to_space_platforms  -- read/write (2.1+)
+force.cargo_landing_pad_limit      -- read/write (2.1+)
+force.max_cargo_bay_unloading_distance  -- read/write (2.1+)
 ```
 
 ---
@@ -715,8 +949,45 @@ All fluid interaction is now done directly through `LuaEntity`.
   - `entity.get_fluid_capacity(index)`
   - `entity.extract_fluid(...)` (replaces old `remove_fluid` behavior)
   - `entity.remove_fluid(...)` (now removes specific amounts of fluids with different arguments)
+  - `entity.has_fluid_segment()`, `entity.get_fluid_segment_fluid()`, etc. (2.1.0+)
 
 ### ⚠️ Writable property updates in 2.1
 - **`entity.active` is no longer writable!** Use `entity.disabled_by_script = true` instead.
 - **`entity.minable` is no longer writable!** Use `entity.minable_flag = false` instead.
 - **`entity.neighbors` is removed!** Use specific properties: `fluidbox_neighbours`, `underground_belt_neighbour`, `wall_neighbours`, `cliff_neighbours`, or `neighbour_connectable_connections`.
+
+### ⚠️ Programmable Speaker (2.1.10+)
+- **`Global` playback mode renamed to `Universe`!** Use `Universe` instead of `Global`.
+
+### ⚠️ Display Panel (2.1 breaking)
+- **`display_panel_text` now accepts `string` ONLY** — `LocalisedString` no longer works. Use `add_record()`, `set_record()`, `records` instead.
+
+---
+
+## Common Runtime Mistakes
+
+1. **Writing to `entity.active`** — Use `entity.disabled_by_script = true/false` instead. `entity.active` is read-only since 2.0.
+
+2. **Writing to `entity.minable`** — Use `entity.minable_flag = false/true` instead. `entity.minable` write removed since 2.0.
+
+3. **Using `entity.fluidbox`** — Completely removed. Use `entity.add_fluid()`, `entity.get_fluid_count()`, `entity.extract_fluid()`, etc.
+
+4. **Using `entity.neighbors`** — Removed. Use `entity.fluidbox_neighbours`, `entity.wall_neighbours`, etc.
+
+5. **Storing Lua objects in `storage`** — Only serializable data! Use `entity.unit_number` instead of entity references.
+
+6. **Writing to `storage` in `on_load()`** — Read-only! Only re-register event handlers or re-setup metatables.
+
+7. **Accessing `game` in `on_load()`** — Not available! Only `script`, `storage` (read), `settings`, `mods` available.
+
+8. **Setting `circuit_condition_satisfied`** — This is read-only. Use `entity.disabled_by_script` to control entity state based on circuit conditions.
+
+9. **Using `"Global"` for Programmable Speaker** — Renamed to `"Universe"` in 2.1.10.
+
+10. **Using `display_panel_text` with LocalisedString** — Only plain `string` works in 2.1+. Use record-based API instead.
+
+11. **Not checking `entity.valid`** — Always check before accessing a stored entity reference.
+
+12. **Using `global` instead of `storage`** — `global` was removed in 2.0. Use `storage`.
+
+13. **Using `category` on recipes** — Use `categories = {"crafting"}` array instead. `category` crashes on load in 2.0+.

@@ -1,5 +1,7 @@
 # GUI API Reference (Factorio 2.1)
 
+> **⚠️ Version-Hinweis:** Stand Factorio 2.1.11 experimental. Bei Unsicherheit über aktuelle GUI-Elemente IMMER gegen die offizielle Doku verifizieren: [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/). Factorio 2.1 (experimental) ändert sich wöchentlich. Wichtige 2.1-Neuerungen: `LuaGuiElement` Typ `"inventory"`, `on_gui_inventory_action` Event, neue `choose-elem-button` Typen (`quality`, `shortcut`, `space-connection`, `surface`, `virtual-signal`, `airborne-pollutant`, `ammo-category`).
+
 ## Table of Contents
 
 - [GUI Roots](#gui-roots)
@@ -400,6 +402,23 @@ parent.add{
 -- Then set the entity to preview:
 element.set_entity("assembling-machine-3")
 ```
+
+### Inventory (2.1+)
+
+```lua
+parent.add{
+  type = "inventory",
+  name = "my-inventory-gui",
+  -- New in 2.1: interactive inventory GUI element
+  -- See LuaGuiElement inventory-related properties:
+  -- inventory, slots_per_row, empty_slot_info,
+  -- handle_cursor_transfer, handle_cursor_split,
+  -- handle_open_item, handle_open_mod_item,
+  -- handle_send_stack_to_trash, handle_send_stacks_to_trash
+}
+```
+
+> **2.1+ Note:** The `"inventory"` GUI element type and `on_gui_inventory_action` event are new in Factorio 2.1. See [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/) for full property and event details.
 
 ---
 

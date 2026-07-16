@@ -1,5 +1,7 @@
 # Prototype Stage (Data Stage) API Reference
 
+> **⚠️ Version-Hinweis:** Stand Factorio 2.1.11 experimental. Bei Unsicherheit über aktuelle Prototype-Properties IMMER gegen die offizielle Doku verifizieren: [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/) (Prototype Definitions). Factorio 2.1 (experimental) ändert sich wöchentlich. Neue Properties in 2.1: `use_mirroring`, `radius_quality_scaling`, `dynamic` ElectricUsagePriority, etc.
+
 ## Table of Contents
 
 - [Files Executed in order](#files-executed-in-order)
