@@ -1,5 +1,7 @@
 # Additional Runtime API Reference
 
+> **⚠️ Version-Hinweis:** Stand Factorio 2.1.11 experimental. Bei Unsicherheit über aktuelle Methoden/Signaturen IMMER gegen die offizielle Doku verifizieren: [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/). Factorio 2.1 ist experimental und ändert sich wöchentlich. Eigenschaften ohne expliziten Versionshinweis gelten seit 2.0+.
+
 ## Table of Contents
 
 - [LuaForce — Team / Faction](#luaforce-—-team-/-faction)
@@ -19,27 +21,9 @@
 - [LuaRendering — Visual Drawing](#luarendering-—-visual-drawing)
 - [LuaChunkIterator — Iterate Chunks](#luachunkiterator-—-iterate-chunks)
 - [LuaItemStack — Item Stack Operations](#luaitemstack-—-item-stack-operations)
-
-
-- [LuaForce — Team / Faction](#)
-- [LuaTechnology — Research](#)
-- [LuaRecipe — Crafting Recipe](#)
-- [LuaItemPrototype — Item Definition (Read-only at runtime)](#)
-- [LuaEntityPrototype — Entity Definition (Read-only)](#)
-- [LuaTrain — Train Operations](#)
-- [LuaLogisticNetwork](#)
-- [LuaCircuitNetwork](#)
-- [LuaControl — Base class for Players and Entities](#)
-- [LuaEquipment & LuaEquipmentGrid](#)
-- [LuaCommandable — AI-Controllable Units](#)
-- [LuaAISettings — Biter AI (2.0 change)](#)
-- [LuaCommandProcessor — Custom Commands](#)
-- [LuaRemote — Cross-Mod Communication](#)
-- [LuaRendering — Visual Drawing](#)
-- [LuaChunkIterator — Iterate Chunks](#)
-- [LuaItemStack — Item Stack Operations](#)
-
-
+- [LuaNotificationQueue — Notifications 2.1+](#luanotificationqueue-—-notifications-21)
+- [LuaPin — Map Pins 2.1.10+](#luapin-—-map-pins-2110)
+- [LuaControlBehavior — Circuit Control 2.1+](#luacontrolbehavior-—-circuit-control-21)
 
 This covers remaining important runtime classes and concepts not detailed in `04-runtime-api.md`.
 
@@ -80,6 +64,18 @@ force.evolution_factor              -- 0-1, biter evolution level
 force.evolution_factor_by_pollution -- contribution from pollution
 force.evolution_factor_by_time      -- contribution from time
 force.evolution_factor_by_spawner_kills -- contribution from killing spawners
+
+-- 2.1 additions
+force.is_visible()                  -- check if force is visible to scripts (2.1+)
+force.set_script_visible(true)      -- set script visibility (2.1+)
+force.get_script_visible()          -- get script visibility (2.1+)
+force.add_alert(...)                -- add standard alert (2.1+)
+force.add_custom_alert(...)         -- add custom alert with custom icon (2.1+)
+force.remove_alert(...)             -- remove alerts (2.1+)
+force.unlock_logistic_network       -- read/write: unlock logistic network (2.1+)
+force.unlock_travel_to_space_platforms  -- read/write: unlock space travel (2.1+)
+force.cargo_landing_pad_limit       -- read/write: max cargo landing pads (2.1+)
+force.max_cargo_bay_unloading_distance  -- read/write (2.1+)
 ```
 
 ## LuaTechnology — Research
@@ -143,6 +139,8 @@ proto.localised_description -- LocalisedString
 
 ## LuaEntityPrototype — Entity Definition (Read-only)
 
+> **Stand: Factorio 2.1.11 experimental.** Verify at [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/).
+
 ```lua
 local proto = prototypes.entity["assembling-machine-3"]
 
@@ -156,6 +154,23 @@ proto.allowed_effects   -- array of strings
 proto.minable           -- table (mining_time, result)
 proto.collision_box     -- {{left, top}, {right, bottom}}
 proto.selection_box     -- {{left, top}, {right, bottom}}
+
+-- 2.1 additions
+proto.get_max_speed()        -- method replacing max_speed (2.1+)
+proto.get_duration()         -- method replacing duration read (2.1+)
+proto.get_inventory_size_bonus()  -- quality-based inventory bonus (2.1+)
+proto.show_fluid_visualization_when_in_cursor  -- read (2.1.10+)
+proto.fixed_quality          -- read (2.1+)
+proto.platform_weight        -- read (2.1+)
+proto.platform_repair_speed_modifier  -- read (2.1+)
+proto.lift_weight            -- read (2.1+)
+proto.use_mirroring          -- read (2.1+)
+proto.attack_target_mask     -- read (2.1+)
+proto.ignore_target_mask     -- read (2.1+)
+-- Removed: fluid_usage_per_tick (use get_fluid_usage_per_tick())
+-- Removed: max_power_output (use get_max_power_output())
+-- Removed: pumping_speed (use get_pumping_speed())
+-- Removed: build_base_evolution_requirement
 ```
 
 ## LuaTrain — Train Operations
@@ -172,18 +187,9 @@ for _, train in pairs(trains) do
   game.print("Max forward speed: " .. train.max_forward_speed)
   game.print("Max backward speed: " .. train.max_backward_speed)
 
-  -- Set schedule
-  train.schedule = {
-    current = 1,
-    records = {
-      {station = "Station A", wait_conditions = {{type = "full", condition = {comparator = "="}}}},
-      {station = "Station B", wait_conditions = {{type = "empty", condition = {comparator = "="}}}},
-    },
-  }
-
-  -- Manual control
-  train.manual_mode = true
-  train.speed = 1.0  -- Set speed directly
+  -- Set schedule (use LuaSchedule API instead)
+  local schedule = train.get_schedule()
+  -- See references/10-trains.md for full LuaSchedule API
 end
 ```
 
@@ -228,6 +234,9 @@ control.health          -- number
 control.max_health      -- number
 control.shield          -- number
 control.max_shield      -- number
+
+-- 2.1: mining_progress moved here from LuaEntity, now read/write
+control.mining_progress  -- read/write (2.1+)
 ```
 
 ## LuaEquipment & LuaEquipmentGrid
@@ -249,6 +258,11 @@ end
 
 -- Insert equipment
 grid.put({name = "personal-roboport-equipment"})
+
+-- 2.1 additions
+equipment.power_production   -- read/write (2.1+)
+equipment.power_usage        -- read/write (2.1+)
+equipment.electric_buffer_size  -- read/write (2.1+)
 ```
 
 ## LuaCommandable — AI-Controllable Units
@@ -257,22 +271,18 @@ grid.put({name = "personal-roboport-equipment"})
 -- Order a unit to go somewhere
 local unit = surface.find_entity("unit", {0, 0})
 if unit and unit.valid then
-  unit.set_command({
-    type = defines.command.go_to_location,
-    destination = {x = 100, y = 100},
-    pathfind_flags = {
-      allow_destroy_friendly_entities = false,
-      prefer_straight_paths = false,
-    },
-    distraction = defines.distraction.by_anything,
-  })
-
-  unit.set_command({
-    type = defines.command.attack_area,
-    destination = {x = 200, y = 200},
-    radius = 10,
-    distraction = defines.distraction.by_damage,
-  })
+  local commandable = unit.commandable  -- 2.0+: use .commandable
+  if commandable then
+    commandable.set_command({
+      type = defines.command.go_to_location,
+      destination = {x = 100, y = 100},
+      pathfind_flags = {
+        allow_destroy_friendly_entities = false,
+        prefer_straight_paths = false,
+      },
+      distraction = defines.distraction.by_anything,
+    })
+  end
 end
 ```
 
@@ -284,7 +294,7 @@ end
 -- WRONG (old way):
 -- local settings = biter_ai_settings
 
--- CORRECT (2.0):
+-- CORRECT (2.0+):
 local biter_ai_settings = require("biter-ai-settings")
 -- Now use biter_ai_settings as a local table
 ```
@@ -413,4 +423,51 @@ stack.transfer_to(target_inventory, slot_index)
 stack.can_set_stack({name = "iron-plate", count = 50})
 stack.clear()
 stack.peek()  -- returns stack without removing
+```
+
+## LuaNotificationQueue — Notifications (2.1+)
+
+```lua
+-- Create a notification queue (2.1+)
+local queue = script.new_notification_queue()
+
+-- Use to manage custom player notifications
+-- See LuaNotificationQueue in official docs for full API
+-- Verify at: https://lua-api.factorio.com/latest/
+```
+
+## LuaPin — Map Pins (2.1.10+)
+
+```lua
+-- Add a pin (now returns LuaPin since 2.1.10)
+local pin = player.add_pin({
+  icon = {type = "item", name = "iron-plate"},
+  position = {x = 100, y = 200},
+  surface = game.surfaces["nauvis"],
+})
+
+-- Get all pins
+local pins = player.get_pins()  -- returns array of LuaPin
+
+-- Clear all pins
+player.clear_pins()
+
+-- LuaPin properties and methods — see official docs
+-- Verify at: https://lua-api.factorio.com/latest/
+```
+
+## LuaControlBehavior — Circuit Control (2.1+)
+
+```lua
+local behavior = entity.get_control_behavior()
+if behavior then
+  -- 2.1 additions
+  behavior.input_networks   -- read/write: input circuit networks (2.1+)
+  behavior.output_networks  -- read/write: output circuit networks (2.1+)
+
+  -- Logistic container (2.1+ — circuit_exclusive_mode_of_operation REMOVED)
+  -- Use set_requests and read_contents together:
+  behavior.set_requests = true
+  behavior.read_contents = true
+end
 ```

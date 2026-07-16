@@ -1,5 +1,7 @@
 # Events Reference (Factorio 2.1)
 
+> **⚠️ Version-Hinweis:** Stand Factorio 2.1.11 experimental. Bei Unsicherheit über aktuelle Events IMMER gegen die offizielle Doku verifizieren: [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/). Factorio 2.1 (experimental) ändert sich wöchentlich. Wichtige 2.1-Neuerung: `on_gui_inventory_action` Event für neue `"inventory"` GUI-Elemente.
+
 Events are the primary way mods react to game actions. Register handlers with `script.on_event()`.
 
 ## Event Registration
@@ -170,7 +172,7 @@ script.raise_event(my_event, {data = "payload"})
 | `on_gui_hover` | Mouse entered element | `element`, `player_index` |
 | `on_gui_leave` | Mouse left element | `element`, `player_index` |
 | `on_gui_selected_tab_changed` | Tab selected | `element`, `player_index` |
-| `on_gui_confirmed` | Textfield enter confirmed | `element`, `player_index` |
+| `on_gui_inventory_action` | Inventory GUI interaction (2.1+) | `element`, `player_index` |
 
 ### Research Events
 

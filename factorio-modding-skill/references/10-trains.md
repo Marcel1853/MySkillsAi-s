@@ -1,5 +1,7 @@
 # Train API Reference (Factorio 2.1)
 
+> **⚠️ Version-Hinweis:** Stand Factorio 2.1.11 experimental. Bei Unsicherheit über aktuelle Methoden/Signaturen IMMER gegen die offizielle Doku verifizieren: [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/). Factorio 2.1 ist experimental und ändert sich wöchentlich. Eigenschaften ohne expliziten Versionshinweis gelten seit 2.0+.
+
 ## Table of Contents
 
 - [Key Concepts](#key-concepts)
@@ -624,3 +626,5 @@ rail_end.connected_rail    -- LuaEntity (the next rail)
 6. **Handle `no_path` state** — Trains can get stuck if tracks are removed; monitor and alert
 7. **Use `temporary = true`** for dynamically added stops — They're removed after the train leaves
 8. **Circuit network integration** — Use train stops to read/write signals for automated logistics
+9. **Quality affects trains (2.1.7+)** — Locomotive power/max speed, cargo wagon inventory size increase with quality tier
+10. **Rolling stock can be upgraded** — with upgrade planner; robots only dispatched to trains in manual mode or waiting at a stop

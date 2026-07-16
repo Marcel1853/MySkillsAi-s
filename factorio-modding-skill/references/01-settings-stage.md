@@ -1,5 +1,7 @@
 # Settings Stage API Reference
 
+> **⚠️ Version-Hinweis:** Stand Factorio 2.1.11 experimental. Diese Datei deckt die Settings-Stage ab, die sich seit 2.0 nicht wesentlich geändert hat. Bei Unsicherheit IMMER gegen die offizielle Doku verifizieren: [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/). Factorio 2.1 (experimental) ändert sich wöchentlich.
+
 The settings stage runs during game startup, **before** any game or prototype data exists. Its purpose is to define mod configuration options that appear in the in-game settings menu.
 
 ## Files Executed (in order)

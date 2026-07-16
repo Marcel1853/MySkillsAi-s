@@ -20,6 +20,14 @@ description: >
 Comprehensive skill for creating Factorio 2.1 mods including all Space Age DLC features.
 Covers the complete Factorio Lua API through organized reference files and practical examples.
 
+> **⚠️ VERSION WARNING — Factorio 2.1 is EXPERIMENTAL and changes weekly.**
+> This skill's reference files are snapshots and may be outdated. **When in doubt about any method signature, property, or define, ALWAYS verify against the official live documentation:**
+> - **Runtime API:** [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/)
+> - **Prototype/Data-Stage:** [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/) (prototype definitions section)
+> - **Version this skill was last updated against:** Factorio 2.1.11 experimental (stable: 2.0.x)
+>
+> API features marked `2.1.x experimental` may not be available in the current stable release (2.0.x). Always check which version your users target.
+
 ## ⚠️ Factorio Uses Modified Lua 5.2
 
 Factorio does **not** use standard Lua. Key differences:
@@ -52,13 +60,13 @@ my-mod/
 ├── control.lua                       ← Optional: runtime scripting (events)
 │
 ├── prototypes/                       ← Recommended: split prototype definitions
-│   ├── items.lua                     ← All item prototypes
-│   ├── recipes.lua                   ← All recipe prototypes (using categories array)
-│   ├── entities.lua                  ← All entity prototypes
-│   ├── technologies.lua              ← All technology prototypes
-│   ├── fluids.lua                    ← All fluid prototypes
-│   ├── equipment.lua                 ← All equipment prototypes
-│   └── space-age/                    ← Space Age specific prototypes (if needed)
+│   ├── items.lua
+│   ├── recipes.lua
+│   ├── entities.lua
+│   ├── technologies.lua
+│   ├── fluids.lua
+│   ├── equipment.lua
+│   └── space-age/                    ← Space Age specific (if needed)
 │       ├── planets.lua
 │       ├── asteroids.lua
 │       ├── quality.lua
@@ -66,13 +74,13 @@ my-mod/
 │
 ├── locale/                           ← Recommended: translations
 │   ├── en/
-│   │   └── my-mod.cfg                ← English strings
+│   │   └── my-mod.cfg
 │   └── de/
-│       └── my-mod.cfg                ← German strings
+│       └── my-mod.cfg
 │
 ├── migrations/                       ← Optional: version migration scripts
-│   ├── 1.1.0.json                    ← Prototype renames/removals
-│   └── 1.1.0.lua                     ← Data migration code
+│   ├── 1.1.0.json
+│   └── 1.1.0.lua
 │
 ├── changelog.txt                     ← Recommended: version history for mod portal
 ├── thumbnail.png                     ← Recommended: 144x144 icon for mod portal
@@ -96,9 +104,10 @@ my-mod/
 When the user asks about Factorio modding:
 
 1. **Identify the API stage** they need (Settings, Prototype/Data, or Runtime/Control)
-2. **Read the relevant reference file(s)** from `references/` for detailed API documentation (updated for 2.1)
-3. **Use the example files** in `examples/` as starting points (updated for 2.1 categories and APIs)
+2. **Read the relevant reference file(s)** from `references/` for detailed API documentation
+3. **Use the example files** in `examples/` as starting points
 4. **Follow the Data Lifecycle** — understand which file runs when (see `references/data-lifecycle.md`)
+5. **⚠️ Verify against live docs** — If any API seems uncertain, check [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/) before using
 
 ## Navigation
 
@@ -116,20 +125,8 @@ When the user asks about Factorio modding:
 | Enums and constants (defines.*) | `references/09-defines.md` | — |
 | Trains: schedules, interrupts, groups, stops | `references/10-trains.md` | `examples/trains/train-dispatcher.lua` |
 | Rendering & visualization | `references/rendering-api.md` | — |
-| Graphics & AI Style Guide (Items, Entities, Techs) | `references/11-graphics-and-art.md` | — |
-| AI Personas & Roles (Developer, Graphics, QA, etc.) | `references/12-ai-personas.md` | — |
-
-## AI Personas & Roles
-
-This skill defines specialized AI roles (personas) that can be activated to handle specific aspects of a Factorio modding project:
-
-- **Factorio Core Developer** — Focuses on performant, desync-safe Lua scripting, event filtering, and strict lifecycle rules.
-- **Industrial Dieselpunk Graphics Artist** — Focuses on authentic visual style, top-left lighting, sprite-sheet packing, and glow-masks.
-- **QA Automation & Migration Specialist** — Focuses on error validation, edge cases, robust settings limits, and safe save migrations.
-- **Sound & Atmosphere Designer** — Focuses on mechanical sounds, heavy auditory feedback, and planet-bound environmental loops.
-- **Localization & Cultural Specialist** — Focuses on zero-hardcoding rules and perfect dual-language localization (EN/DE).
-
-To activate a persona, explicitly prompt: *"Act as the [PERSONA_NAME]"*. For details, see `references/12-ai-personas.md`.
+| Graphics style guide (reference only, no API) | `references/11-graphics-and-art.md` | — |
+| Core Developer role (API rules only) | `references/12-ai-personas.md` | — |
 
 ## The Three Stages
 
@@ -246,24 +243,51 @@ my-mod=Mein Mod Titel
 my-mod=Beschreibung, die im Mod-Portal angezeigt wird.
 ```
 
-## 2.1 Key Changes & Deprecations (Moving from 2.0)
+## 2.1 Key Changes & Deprecations (Moving from 2.0 → 2.1)
 
-| Change | Factorio 2.1 (Old) | Factorio 2.1 (New) |
-|--------|---------------------|---------------------|
-| Mod Dependency | `"dependencies": ["? space-age"]` | `"dependencies": ["+ space-age"]` (`+` is optional recommended, auto-enabled!) |
-| Recipe Category | `RecipePrototype::category = "crafting"` | `RecipePrototype::categories = {"crafting"}` (`category` and `additional_categories` are removed) |
-| Fluid Interaction | `entity.fluidbox[1] = ...` (LuaFluidBox) | Direct entity methods: `entity.add_fluid()`, `entity.get_fluid_filter()`, etc. (`fluidbox` read removed!) |
-| Fluids Removal | `entity.remove_fluid()` | `entity.extract_fluid()` (old behavior renamed, new `remove_fluid` added with different parameters) |
-| Entity Active State | `entity.active = false` (writable) | `entity.disabled_by_script = true` (`active` write removed) |
-| Entity Minable State | `entity.minable = false` (writable) | `entity.minable_flag = false` (`minable` write removed) |
-| Entity Neighbours | `entity.neighbors` (read property) | Specific properties: `fluidbox_neighbours`, `underground_belt_neighbour`, etc. |
-| Crafter Inventories | `defines.inventory.crafter_input`, etc. | `defines.inventory.crafter_input`, `crafter_output`, `crafter_modules`, `crafter_trash` (unified) |
-| Control Behavior | `defines.control_behavior.type.single_fluid_box` | `defines.control_behavior.type.single_fluid_box` (renamed) |
-| Container GUI defines | `defines.relative_gui_type.boiler_gui` | Removed. Added `.boiler_gui`, `.radar_gui`, etc. |
-| Display Panel | `get_message`/`set_message`/`messages` | Record-based: `add_record()`, `remove_record()`, `set_record()`, `records` |
-| Logistic Container | `circuit_exclusive_mode_of_operation` | Removed. Use `set_requests` and `read_contents` together directly. |
-| Molten metal recipes | `"molten-iron"`, `"molten-copper"` | Renamed to `"iron-ore-melting"`, `"copper-ore-melting"` |
-| Inventory GUI element | None | Added `LuaGuiElement` type `"inventory"` and `on_gui_inventory_action` event |
+> **Stand: Factorio 2.1.11 experimental** — Verify against [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/) before relying on any entry. Factorio 2.1 is experimental and changes weekly.
+
+| Change | Factorio 2.0 (Old) | Factorio 2.1 (New) | Since Version |
+|--------|---------------------|---------------------|---------------|
+| Mod Dependency | `"dependencies": ["? space-age"]` | `"dependencies": ["+ space-age"]` (`+` is optional recommended, auto-enabled!) | 2.0 |
+| Recipe Category | `RecipePrototype::category = "crafting"` | `RecipePrototype::categories = {"crafting"}` (`category` and `additional_categories` removed) | 2.0 |
+| Fluid Interaction | `entity.fluidbox[1] = ...` (LuaFluidBox) | Direct entity methods: `entity.add_fluid()`, `entity.get_fluid_filter()`, etc. (`fluidbox` read removed!) | 2.0 |
+| Fluids Removal | `entity.remove_fluid()` | `entity.extract_fluid()` (old behavior renamed, new `remove_fluid` added with different parameters) | 2.0 |
+| Entity Active State | `entity.active = false` (writable) | `entity.disabled_by_script = true` (`active` write removed) | 2.0 |
+| Entity Minable State | `entity.minable = false` (writable) | `entity.minable_flag = false` (`minable` write removed) | 2.0 |
+| Entity Neighbours | `entity.neighbors` (read property) | Specific properties: `fluidbox_neighbours`, `underground_belt_neighbour`, etc. | 2.0 |
+| Crafter Inventories | Various `defines.inventory` values | `defines.inventory.crafter_input`, `crafter_output`, `crafter_modules`, `crafter_trash` (unified) | 2.0 |
+| Display Panel | `get_message`/`set_message`/`messages` | Record-based: `add_record()`, `remove_record()`, `set_record()`, `records` | 2.0 |
+| Logistic Container | `circuit_exclusive_mode_of_operation` | Removed. Use `set_requests` and `read_contents` together directly. | 2.0 |
+| Molten metal recipes | `"molten-iron"`, `"molten-copper"` | Renamed to `"iron-ore-melting"`, `"copper-ore-melting"` | 2.0 |
+| Inventory GUI element | None | Added `LuaGuiElement` type `"inventory"` and `on_gui_inventory_action` event | 2.1.0 |
+| Programmable Speaker | Playback mode `Global` | Renamed to `Universe` | 2.1.10 |
+| LuaPlayer Pins | `add_pin()` only | `add_pin()` now returns `LuaPin`; added `get_pins()`, `clear_pins()` | 2.1.10 |
+| LuaPlayer Remote View | N/A | Added `toggle_menu_leaves_remote_view` read/write | 2.1.9 |
+| Entity Flip | N/A | Added `LuaEntity::flip` read | 2.1.0 |
+| Entity Protection | N/A | Added `LuaEntity::protected` read/write | 2.1.0 |
+| Entity Upgrades | Must mark for upgrade first | `apply_upgrade()` can now directly upgrade without marking | 2.1.10 |
+| Entity Materials | N/A | Added `request_missing_construction_materials` read/write | 2.1.10 |
+| Entity Platforms | N/A | Added `providing_to_other_platforms` read/write | 2.1.10 |
+| Spidertron Patrol | N/A | Added `autopilot_patrol_size` read/write; patrol path support | 2.1.7 |
+| Lab Circuit | N/A | Labs can be circuit-connected, read contents, read research cost, set research | 2.1.7 |
+| Pipes Circuit | N/A | Pipes, storage tanks, boilers, heat exchangers can be circuit-connected | 2.1.7 |
+| Selector Combinator | N/A | Added "Time" mode (game tick, time of day, day duration) | 2.1.7 |
+| Storage Tank Quality | Fixed capacity | Fluid volume increases with quality | 2.1.7 |
+| Cargo Wagon Quality | Fixed size | Inventory size increases with quality | 2.1.7 |
+| Locomotive Quality | Fixed power | Power and max speed increase with quality | 2.1.7 |
+| Choose-Elem Button | Limited types | Added `airborne-pollutant`, `ammo-category`, `quality`, `shortcut`, `space-connection`, `surface`, `virtual-signal` | 2.1.0 |
+| Notification Queue | N/A | Added `LuaNotificationQueue`, `LuaBootstrap::new_notification_queue()` | 2.1.0 |
+| Control Behavior | Single network view | `input_networks` and `output_networks` read/write on `LuaControlBehavior` | 2.1.0 |
+| Force Visibility | N/A | `is_visible()`, `set_script_visible()`, `get_script_visible()` | 2.1.0 |
+| Force Alerts | Limited | `add_alert()`, `add_custom_alert()`, `remove_alert()` | 2.1.0 |
+| Force Space Travel | N/A | `unlock_logistic_network`, `unlock_travel_to_space_platforms` read/write | 2.1.0 |
+| Entity Durability | N/A | `clear_stored_durability()`, `get_stored_durability()`, `set_stored_durability()` | 2.1.0 |
+| Entity Tooltip Fields | N/A | `clear_tooltip_fields()`, `get_tooltip_fields()`, `set_tooltip_field()`, etc. | 2.1.0 |
+| Fluid Segments | N/A | `has_fluid_segment()`, `get_fluid_segment_fluid()`, `set_fluid_segment_fluid()`, etc. | 2.1.0 |
+| Player Factoriopedia | N/A | `hide_locked_prototypes_in_factoriopedia` read/write | 2.1.9 |
+
+> **⚠️ IMPORTANT:** This table is a SNAPSHOT. Factorio 2.1 is experimental and receives weekly updates. Always verify the current API at [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/) before using any method or property listed here.
 
 ## Quality System (Space Age)
 
@@ -273,10 +297,14 @@ Quality tier system applies to a limited, fixed set of properties on specific pr
 Quality affects: `stack_size` (lower quality = fewer per stack), `weight`, and the item's visual appearance. Items created through crafting can roll for quality based on the recipe's `allow_quality` flag and any quality modules used.
 
 ### Entities
-Quality affects: `max_health` (higher quality = more health), `mining_time` (for mining drills), `crafting_speed` (for assemblers/furnaces), `pollution` values, and module slot count on some entities. Storage tank capacity also increases with quality (new in 2.1!).
+Quality affects: `max_health` (higher quality = more health), `mining_time` (for mining drills), `crafting_speed` (for assemblers/furnaces), `pollution` values, and module slot count on some entities. **Storage tank capacity increases with quality (2.1.7+).**
 
 ### Equipment
 Quality affects: `max_shield_value` (energy shields), `movement_bonus` (exoskeletons), `energy_production` (solar panels), and `power` (batteries).
+
+### Trains (2.1.7+)
+- Locomotive power and max speed increase with quality.
+- Cargo wagon inventory size increases with quality.
 
 ### Built-in Quality Tiers
 
@@ -293,33 +321,40 @@ Quality affects: `max_shield_value` (energy shields), `movement_bonus` (exoskele
 1. **Use `categories` array on recipes** — `category` and `additional_categories` will crash on load.
 2. **Use direct entity fluid methods** — never try to read or write to `entity.fluidbox`, as it has been completely removed.
 3. **Use the `+` dependency modifier** for optional recommended mods like `+ space-age`.
-4. **Use unified `crafter` inventories** — `defines.inventory.crafter_input` is gone, use `defines.inventory.crafter_input`.
+4. **Use unified `crafter` inventories** — `defines.inventory.crafter_input`, `crafter_output`, `crafter_modules`.
 5. **Use `entity.disabled_by_script`** to disable/enable entities instead of writing to `entity.active`.
 6. **Use `entity.minable_flag`** to make entities indestructible/unminable by script instead of writing to `entity.minable`.
 7. **Provide both `en/` and `de/` locale files** — Factorio has a large German playerbase.
 8. **Check `mods` table** before accessing other mods: `if mods["space-age"] then ...`
 9. **Use `data.raw[type][name]`** to modify existing prototypes.
-10. **Use `storage` not `global`** — `global` was removed in Factorio 2.1.
+10. **Use `storage` not `global`** — `global` was removed in Factorio 2.0.
 11. **Never modify `storage` in `on_load()`** — it's read-only; only re-setup metatables/conditional handlers.
 12. **Use `script.on_configuration_changed()`** for mod updates on existing saves.
+13. **Verify API against live docs** — When unsure about a method or signature, check [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/) rather than guessing from this skill's snapshot.
+14. **Use `Universe` not `Global`** for Programmable Speaker playback mode (renamed in 2.1.10).
+15. **Use `LuaSchedule` API** — Don't assign `train.schedule = {}` directly; it overwrites interrupts.
 
-## Key API Objects (Updated for 2.1)
+## Key API Objects (Updated for 2.1.11)
 
-| Object | Access | Description |
-|--------|--------|-------------|
-| `LuaEntity` | `surface.find_entity()` | Game entities (machines, belts, trains, direct fluid APIs) |
-| `LuaPlayer` | `game.get_player(index)` | Connected players |
-| `LuaSurface` | `game.surfaces[name]` | Worlds/planets/platforms |
-| `LuaGameScript` | `game` | Global game state |
-| `LuaBootstrap` | `script` | Events, storage, metatables |
-| `LuaGuiElement` | `player.gui.*` | GUI components (including new `"inventory"` type) |
-| `LuaInventory` | `entity.get_inventory()` | Item containers |
-| `LuaItemStack` | `inventory[slot]` | Individual item stacks |
-| `LuaTrain` | `locomotive.train` | Connected rolling stock |
-| `LuaSchedule` | `train.get_schedule()` | Train/space platform schedules |
-| `LuaSpacePlatform` | `game.get_space_platforms()` | Space platform management |
-| `LuaForce` | `game.forces[name]` | Factions/teams |
-| `LuaCircuitNetwork` | `entity.get_circuit_network()` | Circuit wire connections |
+> **Stand: Factorio 2.1.11 experimental.** Verify at [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/).
+
+| Object | Access | Description | Version |
+|--------|--------|-------------|---------|
+| `LuaEntity` | `surface.find_entity()` | Game entities (machines, belts, trains, direct fluid APIs) | 2.0+ |
+| `LuaPlayer` | `game.get_player(index)` | Connected players; pins, remote view toggle (2.1.9+) | 2.0+ |
+| `LuaSurface` | `game.surfaces[name]` | Worlds/planets/platforms | 2.0+ |
+| `LuaGameScript` | `game` | Global game state | 2.0+ |
+| `LuaBootstrap` | `script` | Events, storage, metatables, notification queues (2.1+) | 2.0+ |
+| `LuaGuiElement` | `player.gui.*` | GUI components (including `"inventory"` type since 2.1) | 2.0+ |
+| `LuaInventory` | `entity.get_inventory()` | Item containers | 2.0+ |
+| `LuaItemStack` | `inventory[slot]` | Individual item stacks | 2.0+ |
+| `LuaTrain` | `locomotive.train` | Connected rolling stock | 2.0+ |
+| `LuaSchedule` | `train.get_schedule()` | Train/space platform schedules | 2.0+ |
+| `LuaSpacePlatform` | `game.get_space_platforms()` | Space platform management | 2.0+ |
+| `LuaForce` | `game.forces[name]` | Factions/teams; visibility, alerts (2.1+) | 2.0+ |
+| `LuaCircuitNetwork` | `entity.get_circuit_network()` | Circuit wire connections | 2.0+ |
+| `LuaPin` | `player.add_pin()` return | Map pin object (2.1.10+) | 2.1.10+ |
+| `LuaNotificationQueue` | `script.new_notification_queue()` | Custom notification system (2.1+) | 2.1+ |
 
 ## Train System (2.1 — Schedule & Quality multipliers)
 
@@ -352,18 +387,19 @@ schedule.set_records({
 })
 ```
 
-### Quality Effects on Trains (2.1 additions)
+### Quality Effects on Trains (2.1.7+)
 - Locomotive power and max speed increase with quality.
 - Cargo wagon inventory size increases with quality.
 - Automatic trains waiting at a stop cannot depart if a robot is on the way to upgrade them.
-- Spidertrons now support automatic patrol path loops!
+- Spidertrons now support automatic patrol path loops! (`autopilot_patrol_size`)
 
 ## External Resources
 
-- [Factorio Lua API Docs](https://lua-api.factorio.com/latest/) — Official reference
+- **[Factorio Lua API Docs](https://lua-api.factorio.com/latest/)** — ⚠️ ALWAYS verify against this when unsure. Authoritative reference.
 - [Factorio Modding Tutorial](https://wiki.factorio.com/Tutorial:Modding_tutorial/Gangsir) — Step-by-step guide
 - [Scripting Tutorial](https://wiki.factorio.com/Tutorial:Scripting) — Runtime scripting
 - [Localisation Guide](https://wiki.factorio.com/Tutorial:Localisation) — Translation system
 - [Railway](https://wiki.factorio.com/Railway) — Train scheduling & signals
 - [Mod Portal](https://mods.factorio.com/) — Share and browse mods
 - [Factorio Forums](https://forums.factorio.com/viewforum.php?f=233) — Community help
+- [Version History 2.1.0](https://wiki.factorio.com/Version_history/2.1.0) — All 2.1.x changes including scripting

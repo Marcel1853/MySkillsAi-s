@@ -1,5 +1,7 @@
 # Factorio 2.1 API: Rendering & Visualization
 
+> **⚠️ Version-Hinweis:** Stand Factorio 2.1.11 experimental. Bei Unsicherheit über aktuelle Rendering-APIs IMMER gegen die offizielle Doku verifizieren: [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/). Factorio 2.1 (experimental) ändert sich wöchentlich. Die Rendering-API hat sich seit 2.0 nicht wesentlich geändert, aber neue Render-Layer oder Parameter können hinzugekommen sein.
+
 ## Table of Contents
 
 - [LuaRendering Methods](#luarendering-methods)
