@@ -138,6 +138,7 @@ script.raise_event(my_event, {data = "payload"})
 | `on_cargo_pod_finished_ascending` | Cargo pod left surface | `cargo_pod`, `surface_index` |
 | `on_cargo_pod_finished_descending` | Cargo pod landed | `cargo_pod`, `surface_index`, `target` |
 | `on_cargo_pod_started_ascending` | Cargo pod departed | `cargo_pod`, `surface_index` |
+| `on_space_platform_changed_state` | Platform state changed | `space_platform`, `old_state`, `new_state` |
 
 ### Rocket Events
 

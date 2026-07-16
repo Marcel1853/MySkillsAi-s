@@ -17,7 +17,7 @@
           "type": "code_check"
         },
         {
-          "text": "Recipe defined with ingredients and results",
+          "text": "Recipe uses categories = {\"crafting\"} array, NOT category = \"crafting\" (deprecated in 2.0+)",
           "type": "code_check"
         },
         {
@@ -33,7 +33,7 @@
           "type": "structure_check"
         },
         {
-          "text": "No use of deprecated 'global' table \u2014 uses 'storage' instead",
+          "text": "No use of deprecated 'global' table — uses 'storage' instead",
           "type": "code_check"
         },
         {
@@ -144,7 +144,7 @@
           "type": "code_check"
         },
         {
-          "text": "Controls entity enable/disable based on signal",
+          "text": "Controls entity via disabled_by_script (NOT writing to entity.active which is read-only since 2.0)",
           "type": "code_check"
         },
         {
@@ -158,6 +158,10 @@
         {
           "text": "Event filter used for performance",
           "type": "code_check"
+        },
+        {
+          "text": "Does NOT set circuit_condition_satisfied (read-only property)",
+          "type": "negative_code_check"
         }
       ]
     },
@@ -206,12 +210,12 @@
       "id": 6,
       "eval_name": "generic-lua-question",
       "prompt": "How do I read a CSV file in Lua and parse it into a table? I have some sensor data in data.csv and want to process it.",
-      "expected_output": "The skill should NOT trigger. This is a general Lua I/O question \u2014 Factorio doesn't provide io.open() and the task has nothing to do with Factorio modding.",
+      "expected_output": "The skill should NOT trigger. This is a general Lua I/O question — Factorio doesn't provide io.open() and the task has nothing to do with Factorio modding.",
       "should_trigger": false,
       "files": [],
       "assertions": [
         {
-          "text": "Skill does NOT trigger \u2014 this is general Lua, not Factorio",
+          "text": "Skill does NOT trigger — this is general Lua, not Factorio",
           "type": "negative_check"
         }
       ]
@@ -225,7 +229,7 @@
       "files": [],
       "assertions": [
         {
-          "text": "Skill does NOT trigger \u2014 this is web development, not Factorio",
+          "text": "Skill does NOT trigger — this is web development, not Factorio",
           "type": "negative_check"
         }
       ]
@@ -239,7 +243,7 @@
       "files": [],
       "assertions": [
         {
-          "text": "Skill does NOT trigger \u2014 this is Python, not Factorio",
+          "text": "Skill does NOT trigger — this is Python, not Factorio",
           "type": "negative_check"
         }
       ]
@@ -253,7 +257,7 @@
       "files": [],
       "assertions": [
         {
-          "text": "Skill should NOT trigger \u2014 this is gameplay advice, not modding",
+          "text": "Skill should NOT trigger — this is gameplay advice, not modding",
           "type": "negative_check"
         }
       ]
@@ -267,7 +271,7 @@
       "files": [],
       "assertions": [
         {
-          "text": "Skill does NOT trigger \u2014 save file editing is not Lua modding",
+          "text": "Skill does NOT trigger — save file editing is not Lua modding",
           "type": "negative_check"
         }
       ]
@@ -281,7 +285,7 @@
       "files": [],
       "assertions": [
         {
-          "text": "Skill does NOT trigger \u2014 Love2D is not Factorio",
+          "text": "Skill does NOT trigger — Love2D is not Factorio",
           "type": "negative_check"
         }
       ]
@@ -295,7 +299,7 @@
       "files": [],
       "assertions": [
         {
-          "text": "Skill does NOT trigger \u2014 console commands are not modding",
+          "text": "Skill does NOT trigger — console commands are not modding",
           "type": "negative_check"
         }
       ]
@@ -309,8 +313,112 @@
       "files": [],
       "assertions": [
         {
-          "text": "Skill does NOT trigger \u2014 map settings are gameplay, not modding",
+          "text": "Skill does NOT trigger — map settings are gameplay, not modding",
           "type": "negative_check"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "eval_name": "2.1-deprecated-api-usage",
+      "prompt": "Write a Factorio 2.1 control.lua that disables an assembling machine when its circuit network reads signal-A > 100. Also show me how to make an entity not minable by players and how to read the fluid in a machine's fluidbox.",
+      "expected_output": "Code that correctly uses 2.1 API: disabled_by_script instead of entity.active, minable_flag instead of entity.minable, and direct fluid methods instead of fluidbox.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Uses disabled_by_script = true/false, NOT entity.active = false (read-only since 2.0)",
+          "type": "code_check"
+        },
+        {
+          "text": "Uses minable_flag = false, NOT entity.minable = false (write removed since 2.0)",
+          "type": "code_check"
+        },
+        {
+          "text": "Uses entity.get_fluid_count()/add_fluid()/extract_fluid(), NOT entity.fluidbox (removed in 2.0)",
+          "type": "code_check"
+        },
+        {
+          "text": "Checks entity.valid before accessing stored entity references",
+          "type": "code_check"
+        },
+        {
+          "text": "Uses storage not global for persistent data",
+          "type": "code_check"
+        },
+        {
+          "text": "Does NOT use entity.neighbors (removed), uses specific neighbour properties if needed",
+          "type": "negative_code_check"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "eval_name": "2.1-recipe-categories",
+      "prompt": "Create a Factorio 2.1 recipe for a 'quantum-circuit' that can be crafted in both 'crafting' and 'advanced-crafting' categories. Also create the assembling machine prototype that supports both categories.",
+      "expected_output": "Recipe using categories = {\"crafting\", \"advanced-crafting\"} array syntax (not the deprecated category/additional_categories).",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Recipe uses categories = {\"crafting\", \"advanced-crafting\"} array syntax",
+          "type": "code_check"
+        },
+        {
+          "text": "Does NOT use category = \"crafting\" (deprecated, crashes on load in 2.0+)",
+          "type": "negative_code_check"
+        },
+        {
+          "text": "Does NOT use additional_categories (removed in 2.0+)",
+          "type": "negative_code_check"
+        },
+        {
+          "text": "Assembling machine has crafting_categories = {\"crafting\", \"advanced-crafting\"}",
+          "type": "code_check"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "eval_name": "2.1-programmable-speaker-universe",
+      "prompt": "I want to create a programmable speaker in my Factorio 2.1 mod that plays a sound globally across all surfaces. Show me the prototype definition.",
+      "expected_output": "Code that uses playback_mode = \"Universe\" (renamed from \"Global\" in 2.1.10), not the old \"Global\" value.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Uses playback_mode = \"Universe\", NOT \"Global\" (renamed in 2.1.10)",
+          "type": "code_check"
+        },
+        {
+          "text": "Does NOT use the deprecated \"Global\" playback mode",
+          "type": "negative_code_check"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "eval_name": "2.1-player-pins-remote-view",
+      "prompt": "Write a Factorio 2.1 control.lua that adds a map pin at the player's position when they press a custom hotkey, lists all pins for the player, and lets them toggle whether the menu leaves remote view when pressing Escape.",
+      "expected_output": "Code that uses LuaPlayer::add_pin(), get_pins(), clear_pins(), and toggle_menu_leaves_remote_view (2.1.9+ APIs).",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Uses player.add_pin() which returns LuaPin (2.1.10+)",
+          "type": "code_check"
+        },
+        {
+          "text": "Uses player.get_pins() to list pins (2.1.10+)",
+          "type": "code_check"
+        },
+        {
+          "text": "Uses player.toggle_menu_leaves_remote_view (2.1.9+)",
+          "type": "code_check"
+        },
+        {
+          "text": "Uses storage not global",
+          "type": "code_check"
+        },
+        {
+          "text": "Registers custom input and event handler properly",
+          "type": "code_check"
         }
       ]
     }

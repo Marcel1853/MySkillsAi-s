@@ -228,28 +228,69 @@ defines.direction.northwest  -- 7
 
 ## defines.inventory
 
+> **⚠️ Stand: Factorio 2.1.11 experimental.** The `assembling_machine_*` and `furnace_*` values were replaced by unified `crafter_*` values in 2.0. Verify at [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/).
+
 ```lua
+-- Character inventories
 defines.inventory.character_main          -- Main character inventory
 defines.inventory.character_guns          -- Gun slots
 defines.inventory.character_ammo          -- Ammo slots
 defines.inventory.character_armor         -- Armor slots
 defines.inventory.character_trash         -- Trash slots
-defines.inventory.character_vehicle      -- Vehicle slots
+defines.inventory.character_vehicle       -- Vehicle slots
 
--- Unified crafter inventories (2.0+)
-defines.inventory.crafter_input   -- Input slots (assemblers, furnaces)
-defines.inventory.crafter_output  -- Output slots
-defines.inventory.crafter_modules -- Module slots
-defines.inventory.crafter_trash   -- Crafter trash slots
+-- Unified crafter inventories (2.0+ — replaces assembling_machine_* and furnace_*)
+defines.inventory.crafter_input           -- Input slots (assemblers, furnaces, etc.)
+defines.inventory.crafter_output          -- Output slots
+defines.inventory.crafter_modules         -- Module slots
+defines.inventory.crafter_trash           -- Crafter trash slots (2.0+)
 
--- Other inventories
-defines.inventory.furnace_fuel            -- Furnace fuel
-defines.inventory.rocket                  -- Rocket cargo
+-- Lab inventories
+defines.inventory.lab_input               -- Lab input (science packs)
+defines.inventory.lab_modules             -- Lab module slots
+defines.inventory.lab_trash               -- Lab trash slots (2.0+)
+
+-- Fuel inventories
+defines.inventory.fuel                    -- Fuel inventory (burner entities)
+defines.inventory.burnt_result            -- Burnt fuel result
+
+-- Chest/Container inventories
+defines.inventory.chest                   -- Main chest inventory
+
+-- Roboport inventories
+defines.inventory.roboport_robot          -- Stationed robots
+defines.inventory.roboport_material       -- Repair packs/materials
+
+-- Robot inventories
+defines.inventory.robot_cargo             -- Logistic/construction robot cargo
+defines.inventory.robot_repair            -- Robot repair packs
+
+-- Vehicle inventories
 defines.inventory.car_trunk               -- Car storage
 defines.inventory.car_ammo                -- Car ammo
 defines.inventory.cargo_wagon             -- Cargo wagon
-defines.inventory.logistic_robot          -- Logistic robot cargo
-defines.inventory.construction_robot      -- Construction robot cargo
+
+-- Other inventories
+defines.inventory.beacon_modules          -- Beacon module slots
+defines.inventory.turret_ammo             -- Turret ammo
+defines.inventory.mining_drill_modules    -- Mining drill module slots
+defines.inventory.rocket_silo_rocket      -- Rocket cargo
+defines.inventory.rocket_silo_result      -- Rocket result
+defines.inventory.item_main               -- Item-with-inventory main
+
+-- Space Age inventories (2.0+)
+defines.inventory.asteroid_collector_output  -- Asteroid collector (2.0+)
+defines.inventory.linked_container_main      -- Linked container (2.0+)
+defines.inventory.agricultural_tower_input   -- Agricultural tower input (2.0+)
+defines.inventory.agricultural_tower_output  -- Agricultural tower output (2.0+)
+
+-- ⚠️ REMOVED in 2.0+ (use crafter_* instead):
+-- defines.inventory.assembling_machine_input   → crafter_input
+-- defines.inventory.assembling_machine_output  → crafter_output
+-- defines.inventory.assembling_machine_modules → crafter_modules
+-- defines.inventory.furnace_source             → crafter_input
+-- defines.inventory.furnace_result             → crafter_output
+-- defines.inventory.furnace_modules            → crafter_modules
 ```
 
 ---

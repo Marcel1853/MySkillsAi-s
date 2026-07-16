@@ -44,6 +44,7 @@ The runtime stage runs during active gameplay. This is where you handle events, 
 | `settings` | table | Runtime settings (global and per-player) |
 | `remote` | LuaRemote | Cross-mod communication interface |
 | `helpers` | LuaHelpers | Utility functions; `is_valid_ambient_sound()`, `is_valid_animation_path()`, `stage` read (2.1+) |
+| `prototypes` | table | Read-only access to all prototypes at runtime: `prototypes.item["iron-plate"]`, `prototypes.entity["assembling-machine-3"]`, etc. (2.0+) |
 
 ## The `script` Object (LuaBootstrap)
 
@@ -343,6 +344,19 @@ game.ticks_per_second  -- Usually 60
 game.paused            -- Is the game paused?
 ```
 
+### Game Utility Methods (2.1+)
+
+```lua
+-- Delete blueprint library (2.1+)
+game.delete_blueprint_library()
+
+-- Auto-save with replay parameter (2.1+)
+game.auto_save("mysave", {allow_in_replay = false})
+
+-- Take technology screenshot (2.1+)
+game.take_technology_screenshot({...}, {allow_in_replay = false})
+```
+
 ---
 
 ## The `commands` Object (LuaCommandProcessor)
@@ -562,6 +576,88 @@ end
 
 -- Logistics
 entity.get_logistic_network()  -- for roboport entities
+
+-- Script mining (2.0+)
+entity.mine({player = player, force = true, raise_destroyed = true})
+  -- Mines the entity as if a player mined it; returns boolean
+  -- player: optional LuaPlayer (for undo support)
+  -- force: force mining even if not normally minable
+  -- raise_destroyed: raise on_object_destroyed event
+
+-- Display panel (2.0+ record-based, 2.1: string only!)
+entity.add_record({text = "Status: OK"})
+entity.remove_record(1)
+entity.set_record(1, {text = "Warning!"})
+entity.records  -- read current records
+-- ⚠️ BREAKING 2.1: display_panel_text now accepts string ONLY, not LocalisedString!
+
+-- Cargo pod creation (2.1+ with optional entity spec)
+entity.create_cargo_pod({...})  -- can now specify target entity (2.1+)
+
+-- Send to orbit
+entity.send_to_orbit_automatically  -- read/write (2.0+)
+```
+
+---
+
+## `prototypes` — Read-Only Prototype Access at Runtime
+
+> **2.0+ feature.** Verify at [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/).
+
+```lua
+-- Access item prototypes
+local item_proto = prototypes.item["iron-plate"]
+item_proto.name          -- "iron-plate"
+item_proto.stack_size    -- 100
+item_proto.weight        -- number (Space Age)
+item_proto.place_result  -- entity name or nil
+item_proto.fuel_value    -- number or nil
+item_proto.localised_name  -- LocalisedString
+
+-- Access entity prototypes
+local entity_proto = prototypes.entity["assembling-machine-3"]
+entity_proto.name              -- "assembling-machine-3"
+entity_proto.crafting_speed    -- 1.25
+entity_proto.max_health        -- 300
+entity_proto.module_slots      -- 4
+entity_proto.collision_box     -- {{left, top}, {right, bottom}}
+-- 2.1+ additional methods:
+entity_proto.get_max_speed()         -- replaces removed max_speed read
+entity_proto.get_duration()          -- replaces removed duration read
+entity_proto.get_inventory_size_bonus()  -- quality-based inventory bonus
+entity_proto.get_fluid_usage_per_tick()  -- replaces removed fluid_usage_per_tick read
+entity_proto.get_max_power_output()      -- replaces removed max_power_output read
+entity_proto.get_pumping_speed()         -- replaces removed pumping_speed read
+
+-- Access recipe prototypes
+local recipe_proto = prototypes.recipe["iron-gear-wheel"]
+recipe_proto.name
+recipe_proto.energy        -- crafting time
+recipe_proto.ingredients   -- array
+recipe_proto.results       -- array
+
+-- Access fluid prototypes
+local fluid_proto = prototypes.fluid["water"]
+fluid_proto.name
+fluid_proto.default_temperature
+fluid_proto.heat_capacity
+
+-- Access technology prototypes
+local tech_proto = prototypes.technology["automation"]
+tech_proto.name
+tech_proto.effects          -- array of effects
+tech_proto.prerequisites    -- array
+
+-- Access quality prototypes (Space Age)
+local quality_proto = prototypes.quality["rare"]
+quality_proto.name
+quality_proto.level         -- 2
+quality_proto.order         -- "c"
+
+-- Iterate all prototypes of a type
+for name, proto in pairs(prototypes.item) do
+  log("Item: " .. name)
+end
 ```
 
 ---
@@ -862,3 +958,36 @@ All fluid interaction is now done directly through `LuaEntity`.
 
 ### ⚠️ Programmable Speaker (2.1.10+)
 - **`Global` playback mode renamed to `Universe`!** Use `Universe` instead of `Global`.
+
+### ⚠️ Display Panel (2.1 breaking)
+- **`display_panel_text` now accepts `string` ONLY** — `LocalisedString` no longer works. Use `add_record()`, `set_record()`, `records` instead.
+
+---
+
+## Common Runtime Mistakes
+
+1. **Writing to `entity.active`** — Use `entity.disabled_by_script = true/false` instead. `entity.active` is read-only since 2.0.
+
+2. **Writing to `entity.minable`** — Use `entity.minable_flag = false/true` instead. `entity.minable` write removed since 2.0.
+
+3. **Using `entity.fluidbox`** — Completely removed. Use `entity.add_fluid()`, `entity.get_fluid_count()`, `entity.extract_fluid()`, etc.
+
+4. **Using `entity.neighbors`** — Removed. Use `entity.fluidbox_neighbours`, `entity.wall_neighbours`, etc.
+
+5. **Storing Lua objects in `storage`** — Only serializable data! Use `entity.unit_number` instead of entity references.
+
+6. **Writing to `storage` in `on_load()`** — Read-only! Only re-register event handlers or re-setup metatables.
+
+7. **Accessing `game` in `on_load()`** — Not available! Only `script`, `storage` (read), `settings`, `mods` available.
+
+8. **Setting `circuit_condition_satisfied`** — This is read-only. Use `entity.disabled_by_script` to control entity state based on circuit conditions.
+
+9. **Using `"Global"` for Programmable Speaker** — Renamed to `"Universe"` in 2.1.10.
+
+10. **Using `display_panel_text` with LocalisedString** — Only plain `string` works in 2.1+. Use record-based API instead.
+
+11. **Not checking `entity.valid`** — Always check before accessing a stored entity reference.
+
+12. **Using `global` instead of `storage`** — `global` was removed in 2.0. Use `storage`.
+
+13. **Using `category` on recipes** — Use `categories = {"crafting"}` array instead. `category` crashes on load in 2.0+.

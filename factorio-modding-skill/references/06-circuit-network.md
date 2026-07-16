@@ -59,7 +59,7 @@ local behavior = cc.get_control_behavior()
 if behavior then
   -- Set section 1, slot 1
   behavior.set_slot(1, {
-    signal = {type: "item", name = "iron-plate"},
+    signal = {type = "item", name = "iron-plate"},
     count = 100,
     index = 1,  -- slot index (1-20 for constant combinator)
   })
@@ -142,7 +142,7 @@ end)
 ## Example: Circuit-Controlled Assembling Machine
 
 ```lua
--- Check circuit condition before crafting
+-- Monitor a circuit signal and disable/enable entity via script
 script.on_event(defines.events.on_tick, function(event)
   if event.tick % 60 ~= 0 then return end  -- check every second
   
@@ -153,14 +153,13 @@ script.on_event(defines.events.on_tick, function(event)
     })
     
     for _, machine in ipairs(machines) do
-      local network = machine.get_circuit_network(defines.wire_type.red)
-      if network then
-        local signal = network.signals[{type = "virtual", name = "signal-A"}]
-        if signal and signal.count > 0 then
-          machine.get_control_behavior().circuit_condition_satisfied = true
-        else
-          machine.get_control_behavior().circuit_condition_satisfied = false
-        end
+      local behavior = machine.get_control_behavior()
+      if behavior then
+        -- Read the circuit condition result (read-only!)
+        -- circuit_condition_satisfied tells you if the condition is met
+        local satisfied = behavior.circuit_condition_satisfied
+        -- Use disabled_by_script to control the entity (NOT entity.active write!)
+        machine.disabled_by_script = not satisfied
       end
     end
   end

@@ -127,6 +127,7 @@ When the user asks about Factorio modding:
 | Rendering & visualization | `references/rendering-api.md` | — |
 | Graphics style guide (reference only, no API) | `references/11-graphics-and-art.md` | — |
 | Core Developer role (API rules only) | `references/12-ai-personas.md` | — |
+| Locale reference (EN + DE templates) | `references/13-locale-reference.md` | — |
 
 ## The Three Stages
 
@@ -165,7 +166,7 @@ When a save is loaded, Factorio runs these 5 steps in order:
 - Use `entity.unit_number` for entity references, not the entity itself
 - `on_load()` can READ `storage` but MUST NOT WRITE to it (causes error)
 - `on_init()` is the correct place to INITIALIZE `storage`
-- `storage` is NOT available during `control.lua` top-level execution
+- `storage` IS available during `control.lua` top-level execution (since 2.0), but `game` is NOT
 
 **Multiplayer joining:** Only steps 1 (`control.lua`) and 4 (`on_load()`) run.
 
@@ -193,55 +194,9 @@ Full details: `references/data-lifecycle.md`
 
 ## Locale Files — Recommended EN + DE
 
-Factorio hat eine große deutschsprachige Spielerbasis. Stelle immer beide Sprachen bereit.
+Factorio hat eine große deutschsprachige Spielerbasis. Stelle immer beide Sprachen bereit. Verwende niemals hartcodierte Strings im Code — immer Locale-Keys.
 
-### locale/en/my-mod.cfg
-```cfg
-[item-name]
-my-item=My Item
-
-[item-description]
-my-item=A useful item created by this mod.
-
-[entity-name]
-my-machine=My Machine
-
-[recipe-name]
-my-recipe=My Recipe
-
-[technology-name]
-my-tech=My Technology
-
-[mod-name]
-my-mod=My Mod Title
-
-[mod-description]
-my-mod=Description shown in mod portal.
-```
-
-### locale/de/my-mod.cfg
-```cfg
-[item-name]
-my-item=Mein Item
-
-[item-description]
-my-item=Ein nützliches Item, das von diesem Mod erstellt wurde.
-
-[entity-name]
-my-machine=Meine Maschine
-
-[recipe-name]
-my-recipe=Mein Rezept
-
-[technology-name]
-my-tech=Meine Technologie
-
-[mod-name]
-my-mod=Mein Mod Titel
-
-[mod-description]
-my-mod=Beschreibung, die im Mod-Portal angezeigt wird.
-```
+Full locale examples and LocalisedString patterns: `references/13-locale-reference.md`
 
 ## 2.1 Key Changes & Deprecations (Moving from 2.0 → 2.1)
 
@@ -286,6 +241,12 @@ my-mod=Beschreibung, die im Mod-Portal angezeigt wird.
 | Entity Tooltip Fields | N/A | `clear_tooltip_fields()`, `get_tooltip_fields()`, `set_tooltip_field()`, etc. | 2.1.0 |
 | Fluid Segments | N/A | `has_fluid_segment()`, `get_fluid_segment_fluid()`, `set_fluid_segment_fluid()`, etc. | 2.1.0 |
 | Player Factoriopedia | N/A | `hide_locked_prototypes_in_factoriopedia` read/write | 2.1.9 |
+| Display Panel Text | `display_panel_text` accepts LocalisedString | `display_panel_text` now accepts **string only** (LocalisedString breaks); use `add_record()`/`set_record()` | 2.1 |
+| Entity Mine | N/A | `entity.mine()` — script mine entity as if player mined it | 2.0 |
+| Cargo Pod Creation | No entity spec | `entity.create_cargo_pod({...})` supports optional entity specification | 2.1 |
+| Blueprint Library | N/A | `game.delete_blueprint_library()` | 2.1 |
+| Flow Statistics | Basic counts | `get_current_input_sample()`, `set_current_input_sample()`, quality_counts, etc. | 2.1 |
+| Prototype Removed | `fluid_usage_per_tick`, `max_power_output`, `pumping_speed`, `build_base_evolution_requirement` | Use `get_fluid_usage_per_tick()`, `get_max_power_output()`, `get_pumping_speed()` methods instead | 2.1 |
 
 > **⚠️ IMPORTANT:** This table is a SNAPSHOT. Factorio 2.1 is experimental and receives weekly updates. Always verify the current API at [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/) before using any method or property listed here.
 

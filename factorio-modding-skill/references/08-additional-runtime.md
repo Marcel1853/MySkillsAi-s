@@ -65,6 +65,17 @@ force.evolution_factor_by_pollution -- contribution from pollution
 force.evolution_factor_by_time      -- contribution from time
 force.evolution_factor_by_spawner_kills -- contribution from killing spawners
 
+-- Flow statistics (2.1+ extended)
+local flow = force.get_item_production_statistics(defines.flow_precision_index.one_game)
+flow.get_current_input_sample()       -- get current tick input sample (2.1+)
+flow.set_current_input_sample(value)  -- set current tick input sample (2.1+)
+flow.get_current_output_sample()      -- get current tick output sample (2.1+)
+flow.set_current_output_sample(value) -- set current tick output sample (2.1+)
+flow.input_quality_counts             -- per-quality input counts (2.1+)
+flow.current_input_quality_samples    -- per-quality current input samples (2.1+)
+flow.output_quality_counts            -- per-quality output counts (2.1+)
+flow.current_output_quality_samples   -- per-quality current output samples (2.1+)
+
 -- 2.1 additions
 force.is_visible()                  -- check if force is visible to scripts (2.1+)
 force.set_script_visible(true)      -- set script visibility (2.1+)
