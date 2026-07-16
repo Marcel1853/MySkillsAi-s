@@ -1,0 +1,318 @@
+{
+  "skill_name": "factorio-modding",
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "create-basic-item-recipe-tech",
+      "prompt": "Create a Factorio 2.1 mod that adds a new item called 'quantum-alloy', a recipe to craft it from iron and copper plates, and a technology to unlock the recipe. Include proper info.json and locale files.",
+      "expected_output": "A complete mod structure with data.lua containing the item, recipe, and technology prototypes, plus info.json and locale files (en + de).",
+      "files": [],
+      "assertions": [
+        {
+          "text": "info.json exists with name, version, factorio_version 2.1, dependencies",
+          "type": "file_check"
+        },
+        {
+          "text": "Item prototype defined with type, name, icon, stack_size",
+          "type": "code_check"
+        },
+        {
+          "text": "Recipe defined with ingredients and results",
+          "type": "code_check"
+        },
+        {
+          "text": "Technology unlocks the recipe with prerequisites",
+          "type": "code_check"
+        },
+        {
+          "text": "Prototypes split into prototypes/ folder with require() in data.lua",
+          "type": "structure_check"
+        },
+        {
+          "text": "Locale files present for both en/ and de/",
+          "type": "structure_check"
+        },
+        {
+          "text": "No use of deprecated 'global' table \u2014 uses 'storage' instead",
+          "type": "code_check"
+        },
+        {
+          "text": "changelog.txt present with version history",
+          "type": "file_check"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "eval_name": "create-space-planet",
+      "prompt": "I want to add a new planet called 'Glacius' to Factorio 2.1 Space Age. It should be a cold ice planet with low gravity, high magnetic field, unique resources, and a space connection from Nauvis. Show me the prototype code.",
+      "expected_output": "Complete planet prototype, space connection, technology to unlock it, and planet-specific resources/entities.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Planet prototype with type='planet' and surface_properties",
+          "type": "code_check"
+        },
+        {
+          "text": "Space connection from nauvis to planet with asteroid definitions",
+          "type": "code_check"
+        },
+        {
+          "text": "Technology with unlock-space-location effect",
+          "type": "code_check"
+        },
+        {
+          "text": "Surface properties: gravity, magnetic-field, solar-power, pressure, day-night-cycle",
+          "type": "code_check"
+        },
+        {
+          "text": "Platform procession set and planet procession set defined",
+          "type": "code_check"
+        },
+        {
+          "text": "Unique resource with autoplace configuration",
+          "type": "code_check"
+        },
+        {
+          "text": "Asteroid spawn definitions for the space connection",
+          "type": "code_check"
+        },
+        {
+          "text": "Map generation settings configured",
+          "type": "code_check"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "eval_name": "custom-gui-window",
+      "prompt": "Build a custom GUI window for my Factorio 2.1 mod that shows the player's current production statistics (items crafted, buildings placed) with tabs for different views and a refresh button. Add it to the top bar.",
+      "expected_output": "A complete control.lua with GUI creation, event handling, and top bar integration.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Uses 'storage' not 'global' for persistent data",
+          "type": "code_check"
+        },
+        {
+          "text": "GUI created with player.gui.screen.add()",
+          "type": "code_check"
+        },
+        {
+          "text": "Tabbed pane with multiple tabs",
+          "type": "code_check"
+        },
+        {
+          "text": "Top bar button added in on_init and on_player_created",
+          "type": "code_check"
+        },
+        {
+          "text": "Event handler for on_gui_click",
+          "type": "code_check"
+        },
+        {
+          "text": "Production statistics displayed",
+          "type": "code_check"
+        },
+        {
+          "text": "Refresh button triggers data update",
+          "type": "code_check"
+        },
+        {
+          "text": "script.on_event for gui elements registered",
+          "type": "code_check"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "eval_name": "circuit-controlled-machine",
+      "prompt": "Create a Factorio mod where an assembling machine only operates when a circuit signal (signal-A > 100) is present. Write the control.lua that monitors the circuit network and enables/disables the machine accordingly.",
+      "expected_output": "Runtime code that reads circuit signals and controls entity behavior based on threshold.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Uses 'storage' not 'global'",
+          "type": "code_check"
+        },
+        {
+          "text": "Reads circuit network via get_circuit_network()",
+          "type": "code_check"
+        },
+        {
+          "text": "Checks for signal-A with threshold",
+          "type": "code_check"
+        },
+        {
+          "text": "Controls entity enable/disable based on signal",
+          "type": "code_check"
+        },
+        {
+          "text": "Periodic monitoring via on_nth_tick",
+          "type": "code_check"
+        },
+        {
+          "text": "Handles entity.valid check",
+          "type": "code_check"
+        },
+        {
+          "text": "Event filter used for performance",
+          "type": "code_check"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "eval_name": "space-platform-management",
+      "prompt": "Write a Factorio 2.1 Space Age mod that automatically monitors space platform fuel levels, alerts players when fuel is low, and tracks cargo deliveries. Include the cargo pod event handlers.",
+      "expected_output": "Control script with cargo pod event handling, thruster monitoring, and player alerts.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Uses 'storage' not 'global'",
+          "type": "code_check"
+        },
+        {
+          "text": "Handles on_cargo_pod_delivered_cargo event",
+          "type": "code_check"
+        },
+        {
+          "text": "Monitors thruster fuel levels",
+          "type": "code_check"
+        },
+        {
+          "text": "Alerts players when fuel is low",
+          "type": "code_check"
+        },
+        {
+          "text": "Tracks cargo delivery statistics",
+          "type": "code_check"
+        },
+        {
+          "text": "Handles space platform lifecycle events",
+          "type": "code_check"
+        },
+        {
+          "text": "Custom console commands for status",
+          "type": "code_check"
+        },
+        {
+          "text": "script.on_init properly initializes storage",
+          "type": "code_check"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "eval_name": "generic-lua-question",
+      "prompt": "How do I read a CSV file in Lua and parse it into a table? I have some sensor data in data.csv and want to process it.",
+      "expected_output": "The skill should NOT trigger. This is a general Lua I/O question \u2014 Factorio doesn't provide io.open() and the task has nothing to do with Factorio modding.",
+      "should_trigger": false,
+      "files": [],
+      "assertions": [
+        {
+          "text": "Skill does NOT trigger \u2014 this is general Lua, not Factorio",
+          "type": "negative_check"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "eval_name": "web-development-lua-question",
+      "prompt": "I'm building a web server in Lua using OpenResty. How do I set up routing and handle POST requests? Also, how do I connect to a PostgreSQL database?",
+      "expected_output": "The skill should NOT trigger. This is about OpenResty/web development, completely unrelated to Factorio.",
+      "should_trigger": false,
+      "files": [],
+      "assertions": [
+        {
+          "text": "Skill does NOT trigger \u2014 this is web development, not Factorio",
+          "type": "negative_check"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "eval_name": "python-automation-question",
+      "prompt": "Write me a Python script that reads JSON config files and generates a report. I need it to loop through all files in a directory and aggregate statistics.",
+      "expected_output": "The skill should NOT trigger. This is a pure Python task with no Factorio connection.",
+      "should_trigger": false,
+      "files": [],
+      "assertions": [
+        {
+          "text": "Skill does NOT trigger \u2014 this is Python, not Factorio",
+          "type": "negative_check"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "eval_name": "factorio-gameplay-only",
+      "prompt": "What's the best ratio of iron plates to copper plates for setting up my first bus? And should I use yellow belts or red belts for transporting coal to my boilers?",
+      "expected_output": "The skill should NOT trigger (or trigger minimally). This is a gameplay/strategy question, not a modding question. The user isn't asking for code.",
+      "should_trigger": false,
+      "files": [],
+      "assertions": [
+        {
+          "text": "Skill should NOT trigger \u2014 this is gameplay advice, not modding",
+          "type": "negative_check"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "eval_name": "factorio-save-file-editing",
+      "prompt": "I accidentally deleted my base in Factorio. Can I edit the save file to restore my buildings? Where are the save files stored and what format are they in?",
+      "expected_output": "The skill should NOT trigger. This is about save file manipulation, not Lua modding.",
+      "should_trigger": false,
+      "files": [],
+      "assertions": [
+        {
+          "text": "Skill does NOT trigger \u2014 save file editing is not Lua modding",
+          "type": "negative_check"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "eval_name": "near-miss-lua-game-dev",
+      "prompt": "I'm making a 2D game in Love2D and want to add conveyor belts that move items between machines. How do I implement the belt logic in Lua?",
+      "expected_output": "The skill should NOT trigger. Love2D is a different game engine. The conveyor belt concept sounds like Factorio but it's not Factorio modding.",
+      "should_trigger": false,
+      "files": [],
+      "assertions": [
+        {
+          "text": "Skill does NOT trigger \u2014 Love2D is not Factorio",
+          "type": "negative_check"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "eval_name": "factorio-console-command-only",
+      "prompt": "What console commands can I use in Factorio to spawn items or kill all biters? I just want a few cheat commands for testing.",
+      "expected_output": "The skill should NOT trigger. This is about using existing console commands, not writing mods or Lua scripts.",
+      "should_trigger": false,
+      "files": [],
+      "assertions": [
+        {
+          "text": "Skill does NOT trigger \u2014 console commands are not modding",
+          "type": "negative_check"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "eval_name": "factorio-map-gen-settings-only",
+      "prompt": "What are the best map generation settings for a peaceful Factorio game? I want lots of resources but no enemies.",
+      "expected_output": "The skill should NOT trigger. This is a gameplay question about map settings, not Lua modding.",
+      "should_trigger": false,
+      "files": [],
+      "assertions": [
+        {
+          "text": "Skill does NOT trigger \u2014 map settings are gameplay, not modding",
+          "type": "negative_check"
+        }
+      ]
+    }
+  ]
+}

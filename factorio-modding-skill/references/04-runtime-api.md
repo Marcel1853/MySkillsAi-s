@@ -1,0 +1,722 @@
+# Runtime API Reference (control.lua)
+
+## Table of Contents
+
+- [Available Globals](#available-globals)
+- [The script Object LuaBootstrap](#the-script-object-luabootstrap)
+  - [Lifecycle Handlers](#lifecycle-handlers)
+  - [Event Registration](#event-registration)
+  - [Event Filters Performance Optimization](#event-filters-performance-optimization)
+  - [Storage](#storage)
+  - [Metatables Persistent Lua Objects](#metatables-persistent-lua-objects)
+- [The game Object LuaGameScript](#the-game-object-luagamescript)
+  - [Players](#players)
+  - [Surfaces](#surfaces)
+  - [Forces](#forces)
+  - [Entities](#entities)
+  - [Ticks & Timing](#ticks-&-timing)
+- [The commands Object LuaCommandProcessor](#the-commands-object-luacommandprocessor)
+- [The remote Object LuaRemote](#the-remote-object-luaremote)
+- [LuaSurface — Surface Operations](#luasurface-—-surface-operations)
+- [LuaEntity — Entity Operations](#luaentity-—-entity-operations)
+- [LuaItemStack — Item Operations](#luaitemstack-—-item-operations)
+- [LuaInventory — Inventory Operations](#luainventory-—-inventory-operations)
+- [LuaTechnology — Research](#luatechnology-—-research)
+- [LuaRecipe — Recipes](#luarecipe-—-recipes)
+- [LuaForce — Faction/Team](#luaforce-—-faction/team)
+- [LuaTile — Tile Operations](#luatile-—-tile-operations)
+- [LuaChunkIterator — Iterate Chunks](#luachunkiterator-—-iterate-chunks)
+- [LuaRendering — Draw Things](#luarendering-—-draw-things)
+
+
+- [Available Globals](#)
+- [The `script` Object (LuaBootstrap)](#)
+- [The `game` Object (LuaGameScript)](#)
+- [The `commands` Object (LuaCommandProcessor)](#)
+- [The `remote` Object (LuaRemote)](#)
+- [LuaSurface — Surface Operations](#)
+- [LuaEntity — Entity Operations](#)
+- [LuaItemStack — Item Operations](#)
+- [LuaInventory — Inventory Operations](#)
+- [LuaTechnology — Research](#)
+- [LuaRecipe — Recipes](#)
+- [LuaForce — Faction/Team](#)
+- [LuaTile — Tile Operations](#)
+- [LuaChunkIterator — Iterate Chunks](#)
+- [LuaRendering — Draw Things](#)
+
+
+
+The runtime stage runs during active gameplay. This is where you handle events, interact with the game world, build GUIs, and manage mod state.
+
+## Available Globals
+
+| Global | Type | Description |
+|--------|------|-------------|
+| `script` | LuaBootstrap | Event registration, storage, metatables |
+| `game` | LuaGameScript | Top-level game access (players, surfaces, forces) |
+| `commands` | LuaCommandProcessor | Custom console commands |
+| `settings` | table | Runtime settings (global and per-player) |
+| `remote` | LuaRemote | Cross-mod communication interface |
+
+## The `script` Object (LuaBootstrap)
+
+### Lifecycle Handlers
+
+```lua
+-- Runs once when the mod is first added to a save or a new game starts
+script.on_init(function()
+  storage.players = storage.players or {}
+  storage.config = storage.config or {enabled = true}
+end)
+
+-- Runs every time a save is loaded (before on_init/on_configuration_changed)
+-- DO NOT access game data here. Only re-register event handlers.
+script.on_load(function()
+  -- Re-bind handlers if needed (they persist across saves automatically)
+end)
+
+-- Runs when the mod version changes or mod settings change on an existing save
+script.on_configuration_changed(function(event)
+  -- event.mod_changes contains old_version, new_version for each changed mod
+  if event.mod_changes["my-mod"] then
+    local old_version = event.mod_changes["my-mod"].old_version
+    if old_version and tonumber(old_version:match("%d+")) < 2 then
+      -- Migrate data from version 1.x
+      for _, player in pairs(game.players) do
+        player.print("Welcome to the new version!")
+      end
+    end
+  end
+end)
+```
+
+### Event Registration
+
+```lua
+-- Built-in event (using string name — preferred in 2.0)
+script.on_event("on_built_entity", function(event)
+  local entity = event.entity
+  game.print(entity.name .. " was built!")
+end)
+
+-- Built-in event (using numeric ID — still works)
+script.on_event(defines.events.on_player_mined_entity, function(event)
+  local entity = event.entity
+  local player = game.get_player(event.player_index)
+  if player then
+    player.print("You mined " .. entity.name)
+  end
+end)
+
+-- Custom event
+local my_event = script.generate_event_name()
+script.on_event(my_event, function(event)
+  game.print("Custom event fired!")
+end)
+
+-- Raise custom event
+script.raise_event(my_event, {my_data = "hello"})
+
+-- Multiple events with one handler
+script.on_event({
+  defines.events.on_player_joined_game,
+  defines.events.on_player_left_game,
+}, function(event)
+  game.print("Player count changed")
+end)
+
+-- Nth tick handler
+script.on_nth_tick(60, function(event)
+  -- Runs every 60 ticks (1 second at 60 UPS)
+  game.print("Tick: " .. event.tick)
+end)
+```
+
+### Event Filters (Performance Optimization)
+
+```lua
+-- Only trigger on specific entity names
+script.on_event(defines.events.on_built_entity, function(event)
+  -- handle build
+end, {{filter = "name", name = "assembling-machine-2"}})
+
+-- Only trigger on specific items
+script.on_event(defines.events.on_player_crafted_item, function(event)
+  -- handle craft
+end, {{filter = "item", name = "my-item"}})
+
+-- Dynamic filter
+script.set_event_filter(defines.events.on_built_entity, {
+  {filter = "name", name = "assembling-machine-3"},
+})
+```
+
+### Storage
+
+```lua
+-- `storage` is a special table that persists across saves
+-- Anything stored must be serializable (no Lua objects!)
+
+script.on_init(function()
+  storage.data = {
+    counters = {},
+    player_prefs = {},
+    tracked_entities = {},  -- store entity.unit_number, not the entity object!
+  }
+end)
+
+-- Access anywhere in control.lua
+storage.data.counters["my-counter"] = (storage.data.counters["my-counter"] or 0) + 1
+```
+
+### Metatables (Persistent Lua Objects)
+
+```lua
+-- Register a metatable so Lua objects are tracked across saves
+script.register_metatable("my_entity_tracker", {
+  __index = {
+    get_health = function(self)
+      local entity = self.entity
+      if entity and entity.valid then
+        return entity.health
+      end
+      return 0
+    end,
+  }
+})
+
+-- Usage
+local tracker = {entity = some_lua_entity}
+setmetatable(tracker, script.get_metatable("my_entity_tracker"))
+```
+
+---
+
+## The `game` Object (LuaGameScript)
+
+### Players
+
+```lua
+-- Access players
+for _, player in pairs(game.players) do
+  player.print("Hello, " .. player.name .. "!")
+end
+
+-- Get specific player
+local player = game.get_player(1)  -- by index
+local player = game.get_player("MyName")  -- by name
+
+-- Online players only
+for _, player in pairs(game.connected_players) do
+  player.print("You are online!")
+end
+
+-- Player properties
+player.name            -- string
+player.index           -- number
+player.online          -- boolean
+player.force           -- LuaForce
+player.surface         -- LuaSurface (where their character is)
+player.position        -- {x, y}
+player.character       -- LuaEntity (their character, or nil)
+player.get_main_inventory()  -- LuaInventory
+player.cursor_stack    -- LuaItemStack (item in hand)
+```
+
+### Surfaces
+
+```lua
+-- Iterate all surfaces
+for index, surface in pairs(game.surfaces) do
+  game.print("Surface: " .. surface.name .. " (index: " .. surface.index .. ")")
+end
+
+-- Get specific surface
+local nauvis = game.surfaces["nauvis"]
+local my_surface = game.surfaces["my-planet-surface"]
+
+-- Create a new surface (Space Age)
+local new_surface = game.create_surface("my-custom-surface", {
+  width = 2000,
+  height = 2000,
+  terrain_segmentation = 2,
+  water = 0.3,
+  starting_area = 1.5,
+})
+
+-- Delete a surface
+game.delete_surface("my-custom-surface")
+
+-- Clone a surface area
+game.clone_area({
+  source = {surface = "nauvis", left_top = {x = 0, y = 0}, right_bottom = {x = 100, y = 100}},
+  destination = {surface = "my-surface", left_top = {x = 0, y = 0}},
+  options = {
+    clone_tiles = true,
+    clone_entities = true,
+    clone_decoratives = true,
+  },
+})
+```
+
+### Forces
+
+```lua
+-- Iterate all forces
+for _, force in pairs(game.forces) do
+  game.print("Force: " .. force.name)
+end
+
+-- Get specific force
+local player_force = game.forces["player"]
+local enemy_force = game.forces["enemy"]
+
+-- Force properties
+force.technologies         -- dictionary of technology name → LuaTechnology
+force.recipes              -- dictionary of recipe name → LuaRecipe
+force.character_logistic_requests  -- boolean
+force.friendly_fire        -- boolean
+
+-- Research
+force.research_progress = 0.5  -- Set progress (0-1)
+force.research_queue_enabled = true
+
+-- Relations
+force.set_friend("enemy", false)
+force.set_friend("player", true)
+```
+
+### Entities
+
+```lua
+-- Create an entity
+local entity = game.surfaces["nauvis"].create_entity({
+  name = "assembling-machine-3",
+  position = {x = 10, y = 10},
+  direction = defines.direction.north,
+  force = "player",
+  quality = "rare",  -- Space Age
+})
+
+-- Find entities
+local entities = game.surfaces["nauvis"].find_entities({{0, 0}, {100, 100}})
+local entities_filtered = game.surfaces["nauvis"].find_entities_filtered({
+  area = {{0, 0}, {100, 100}},
+  name = "assembling-machine-*",  -- glob pattern
+  type = "assembling-machine",
+  force = "player",
+  limit = 100,
+})
+
+-- Find entities nearby
+local nearby = entity.surface.find_entities_filtered({
+  position = entity.position,
+  radius = 10,
+})
+```
+
+### Ticks & Timing
+
+```lua
+game.tick              -- Current game tick (60 ticks = 1 second at normal speed)
+game.speed             -- Current game speed multiplier
+game.ticks_per_second  -- Usually 60
+game.paused            -- Is the game paused?
+```
+
+---
+
+## The `commands` Object (LuaCommandProcessor)
+
+```lua
+-- Register a custom console command
+commands.add_command("my-command", "My command description", function(event)
+  local player = game.get_player(event.player_index)
+  if player then
+    player.print("You ran /my-command with parameters: " .. (event.parameter or "none"))
+  end
+end)
+
+-- With help text
+commands.add_command("my-helpful-cmd", {
+  "command-description.my-cmd",  -- localised string
+}, function(event)
+  -- handler
+end)
+```
+
+---
+
+## The `remote` Object (LuaRemote)
+
+```lua
+-- Define a remote interface (in control.lua)
+remote.add_interface("my-mod", {
+  get_version = function()
+    return "1.0.0"
+  end,
+  do_something = function(data)
+    -- called by other mods
+    return {success = true}
+  end,
+  get_entities = function(surface_name)
+    local surface = game.surfaces[surface_name]
+    if not surface then return nil end
+    return surface.count_entities_filtered({name = "assembling-machine-3"})
+  end,
+})
+
+-- Call another mod's remote interface
+if remote.interfaces["space-age"] then
+  local result = remote.call("space-age", "get_planet_info", "vulcanus")
+end
+```
+
+---
+
+## LuaSurface — Surface Operations
+
+```lua
+local surface = game.surfaces["nauvis"]
+
+-- Chunk operations
+surface.get_chunk_count()
+surface.get_chunks()  -- returns LuaChunkIterator
+
+for chunk in surface.get_chunks() do
+  game.print("Chunk at " .. chunk.x .. "," .. chunk.y)
+end
+
+-- Tile operations
+surface.get_tile(10, 10)  -- returns LuaTile
+surface.set_tiles({{name = "grass-1", position = {0, 0}}})
+
+-- Decorative operations
+surface.create_decoratives({check_collision = true, decoratives = {
+  {name = "tree-01", position = {5, 5}, amount = 3},
+}})
+surface.destroy_decoratives({position = {5, 5}, name = "tree-01"})
+
+-- Chart/Visibility
+surface.set_force_visible("player", true)  -- reveal the whole surface to a force
+surface.get_hidden_chunk_count()
+
+-- Pollution
+surface.get_pollution({x = 0, y = 0})
+surface.pollute({x = 0, y = 0}, 100)  -- add pollution
+
+-- Entity creation helpers
+surface.create_entity({
+  name = "flying-text",
+  position = {x = 0, y = 0},
+  text = "Hello!",
+  color = {r = 1, g = 1, b = 1},
+})
+
+-- Entity destruction
+surface.destroy_entity(entity)  -- same as entity.destroy()
+```
+
+---
+
+## LuaEntity — Entity Operations
+
+```lua
+-- Common properties
+entity.name             -- string
+entity.type             -- string ("assembling-machine", "inserter", etc.)
+entity.position         -- {x, y}
+entity.surface          -- LuaSurface
+entity.force            -- LuaForce
+entity.health           -- number
+entity.max_health       -- number
+entity.quality          -- string (Space Age)
+entity.valid            -- boolean (always check before using a stored reference!)
+entity.unit_number      -- unique number (use for storage, not the entity itself)
+
+-- Inventory access (for machines)
+local inventory = entity.get_inventory(defines.inventory.crafter_input)
+if inventory then
+  for i = 1, #inventory do
+    local stack = inventory[i]
+    if stack.valid_for_read then
+      game.print(stack.name .. ": " .. stack.count)
+    end
+  end
+end
+
+-- Fluid access
+entity.get_fluid_count("water")
+entity.insert_fluid({name = "water", amount = 100})
+entity.remove_fluid({name = "water", amount = 50})
+
+-- Deconstruction/Upgrade
+entity.order_deconstruction("player")
+entity.cancel_deconstruction("player")
+entity.order_upgrade({target = "assembling-machine-3", force = "player"})
+entity.to_be_deconstructed()  -- boolean
+entity.to_be_upgraded()  -- boolean
+
+-- Cloning
+local clone = entity.clone({
+  position = {x = 10, y = 10},
+  surface = game.surfaces["nauvis"],
+  force = "player",
+})
+
+-- Destruction
+entity.destroy()  -- returns boolean (true if destroyed)
+entity.die()      -- kills it with death effects
+
+-- Neighbours (for walls, reactors, power switches)
+local neighbours = entity.get_neighbours()
+
+-- Building state
+entity.is_crafting()  -- boolean (for assembling machines, furnaces)
+entity.crafting_progress  -- 0-1
+entity.get_recipe()  -- LuaRecipePrototype or nil
+entity.set_recipe("my-recipe")  -- for machines with recipe support
+
+-- Circuit connections
+entity.get_circuit_network(defines.wire_type.red, 1)  -- wire type + connector ID
+
+-- Logistics
+entity.get_logistic_network()  -- for roboport entities
+```
+
+---
+
+## LuaItemStack — Item Operations
+
+```lua
+local stack = player.get_main_inventory()[1]
+
+if stack.valid_for_read then
+  stack.name          -- "iron-plate"
+  stack.count         -- number
+  stack.quality       -- string (Space Age)
+  stack.durability    -- number (for tools/weapons)
+  stack.is_blueprint  -- boolean
+  stack.is_blueprint_book  -- boolean
+  stack.is_item_with_label  -- boolean
+  stack.is_item_with_inventory  -- boolean
+  stack.is_item_with_tags  -- boolean
+end
+
+-- Operations
+stack.set_stack({name = "iron-plate", count = 100})
+stack.clear()
+stack.transfer_to(target_inventory, target_index)
+stack.can_set_stack({name = "iron-plate", count = 50})  -- boolean
+```
+
+---
+
+## LuaInventory — Inventory Operations
+
+```lua
+local inv = player.get_main_inventory()
+
+-- Access slots (1-indexed)
+local stack = inv[1]
+
+-- Count items
+inv.get_item_count("iron-plate")
+
+-- Find items
+local slot = inv.find_item_stack("iron-plate")  -- first slot index with this item
+
+-- Insert/remove
+inv.insert({name = "iron-plate", count = 10})
+inv.remove({name = "iron-plate", count = 5})
+
+-- Clear
+inv.clear()
+
+-- Properties
+inv.is_empty()  -- boolean
+inv.get_item_count()  -- total items (all types)
+#inv  -- number of slots
+inv.supports_bar()  -- boolean (can set a bar/limit)
+inv.get_bar()  -- number (the bar slot)
+inv.set_bar(50)
+```
+
+---
+
+## LuaTechnology — Research
+
+```lua
+local tech = game.forces["player"].technologies["automation"]
+
+tech.name           -- "automation"
+tech.researched     -- boolean
+tech.enabled        -- boolean (can be researched)
+tech.level          -- number (for infinite techs)
+tech.prototype      -- LuaTechnologyPrototype
+tech.price_multiplier  -- number (can be modified)
+
+-- Research operations
+tech.researched = true   -- instantly complete
+tech.enabled = false     -- disable (grey out)
+```
+
+---
+
+## LuaRecipe — Recipes
+
+```lua
+local recipe = game.forces["player"].recipes["iron-gear-wheel"]
+
+recipe.name           -- "iron-gear-wheel"
+recipe.enabled        -- boolean
+recipe.prototype      -- LuaRecipePrototype
+recipe.product_count  -- number (result amount)
+recipe.energy         -- number (crafting time in seconds)
+
+-- Modify at runtime
+recipe.enabled = true  -- unlock recipe
+```
+
+---
+
+## LuaForce — Faction/Team
+
+```lua
+local force = game.forces["player"]
+
+-- Chart operations
+force.chart(surface, {{left_top = {0, 0}, right_bottom = {100, 100}}})
+force.clear_chart(surface)  -- un-explore
+
+-- Research
+force.research("automation")  -- set current research
+force.research_progress  -- 0-1
+
+-- Technologies
+force.technologies["automation"].researched  -- boolean
+
+-- Recipes
+force.recipes["my-recipe"].enabled  -- boolean
+
+-- Friends/Enemies
+force.get_friend("enemy")  -- boolean
+force.set_friend("enemy", false)
+
+-- Kill statistics
+force.get_kill_count("big-biter")
+
+-- Share character logistics
+force.character_logistic_requests = true
+force.logistic_slot_count = 10  -- number of logistic slots
+```
+
+---
+
+## LuaTile — Tile Operations
+
+```lua
+local tile = surface.get_tile(10, 10)
+
+tile.name           -- "grass-1", "water", etc.
+tile.position       -- {x, y} (chunk-aligned)
+tile.surface        -- LuaSurface
+tile.collision_mask -- table of collision layers
+
+-- Change tile
+tile.set("refined-hazard-concrete-left", player)  -- with player for undo
+```
+
+---
+
+## LuaChunkIterator — Iterate Chunks
+
+```lua
+local surface = game.surfaces["nauvis"]
+local chunks = surface.get_chunks()
+
+for chunk in chunks do
+  local left_top = {x = chunk.x * 32, y = chunk.y * 32}
+  local right_bottom = {x = (chunk.x + 1) * 32, y = (chunk.y + 1) * 32}
+  game.print("Chunk " .. chunk.x .. "," .. chunk.y)
+end
+
+-- With area restriction
+local iter = surface.get_chunks({
+  left_top_chunk = {-10, -10},
+  right_bottom_chunk = {10, 10},
+})
+```
+
+---
+
+## LuaRendering — Draw Things
+
+```lua
+-- Draw a line
+rendering.draw_line({
+  color = {r = 1, g = 0, b = 0},
+  width = 2,
+  from = {x = 0, y = 0},
+  to = {x = 100, y = 100},
+  surface = "nauvis",
+  time_to_live = 300,  -- ticks (5 seconds)
+})
+
+-- Draw a circle
+rendering.draw_circle({
+  color = {r = 0, g = 1, b = 0},
+  radius = 5,
+  target = {x = 0, y = 0},
+  surface = "nauvis",
+  time_to_live = 600,
+})
+
+-- Draw text (flying text)
+rendering.draw_text({
+  text = "Hello!",
+  target = {x = 0, y = 0},
+  surface = "nauvis",
+  color = {r = 1, g = 1, b = 1},
+  scale = 1.5,
+  time_to_live = 120,
+})
+
+-- Draw sprite
+rendering.draw_sprite({
+  sprite = "utility/warning_icon",
+  target = {x = 0, y = 0},
+  surface = "nauvis",
+  time_to_live = 180,
+})
+
+-- Create persistent rendering object
+local obj = rendering.draw_line({
+  color = {r = 1, g = 0, b = 0, a = 0.5},
+  width = 3,
+  from = {x = 0, y = 0},
+  to = {x = 50, y = 50},
+  surface = "nauvis",
+  draw_on_ground = true,  -- draws on the ground, not above entities
+})
+obj.destroy()  -- to remove it later
+```
+
+### ⚠️ Factorio 2.1 Fluid & Fluid Box Overhaul
+In Factorio 2.1, **`LuaEntity::fluidbox` and the `LuaFluidBox` class have been completely removed!**
+All fluid interaction is now done directly through `LuaEntity`.
+- Do NOT use `entity.fluidbox[1]`.
+- Instead, use new direct methods:
+  - `entity.clear_fluids()`
+  - `entity.add_fluid({name = "water", amount = 100, temperature = 15})`
+  - `entity.get_fluid_filter(index)`
+  - `entity.set_fluid_filter(index, name)`
+  - `entity.get_fluid_capacity(index)`
+  - `entity.extract_fluid(...)` (replaces old `remove_fluid` behavior)
+  - `entity.remove_fluid(...)` (now removes specific amounts of fluids with different arguments)
+
+### ⚠️ Writable property updates in 2.1
+- **`entity.active` is no longer writable!** Use `entity.disabled_by_script = true` instead.
+- **`entity.minable` is no longer writable!** Use `entity.minable_flag = false` instead.
+- **`entity.neighbors` is removed!** Use specific properties: `fluidbox_neighbours`, `underground_belt_neighbour`, `wall_neighbours`, `cliff_neighbours`, or `neighbour_connectable_connections`.

@@ -1,0 +1,9 @@
+{
+  "name": "crystal-tech",
+  "version": "1.1.0",
+  "title": "Crystal Tech",
+  "author": "Modder Name",
+  "factorio_version": "2.1",
+  "dependencies": ["base >= 2.1", "+ space-age"],
+  "description": "Adds crystal-based items, machines, and technologies. Updated for Factorio 2.1."
+}

@@ -1,0 +1,5 @@
+{
+  "recipe": [
+    ["crystal-processor", "crystal-processor-recipe"]
+  ]
+}

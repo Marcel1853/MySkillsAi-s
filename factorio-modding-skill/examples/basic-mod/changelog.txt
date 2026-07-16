@@ -1,0 +1,18 @@
+---------------------------------------------------------------------------------------------------
+Version: 1.1.0
+Date: 2026-06-24
+  Changes:
+    - Updated for Factorio 2.1
+    - Replaced RecipePrototype::category with categories
+    - Updated mod dependencies to use the new "+" recommended modifier
+---------------------------------------------------------------------------------------------------
+Version: 1.0.0
+Date: 2025-06-17
+  Features:
+    - Added crystal-ore item and resource
+    - Added crystal-furnace entity
+    - Added crystal-processor item
+    - Added refining and crafting recipes
+    - Added crystal-processing technology
+    - Added quality support for Space Age
+---------------------------------------------------------------------------------------------------
