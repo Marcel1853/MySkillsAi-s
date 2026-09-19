@@ -262,22 +262,23 @@ Wait conditions determine when a train leaves a station. They are evaluated in *
 | `"inactivity"` | `ticks` | Wait for N seconds with no loading/unloading |
 | `"empty"` | — | Wait until cargo is empty |
 | `"full"` | — | Wait until cargo is full |
-| `"item_count"` | `condition: { comparator, count }` | Wait until item count meets condition |
-| `"fluid_count"` | `condition: { comparator, count }` | Wait until fluid amount meets condition |
-| `"circuit"` | `condition: { comparator, count }` | Wait until circuit signal meets condition |
-| `"passenger_present"` | — | Wait until all passengers have boarded |
-| `"passenger_absent"` | — | Wait until all passengers have disembarked |
-| `"fuel"` | — | Wait until fuel is full (locomotives) |
-| `"no_fuel"` | — | Wait until no fuel is left |
+| `"not_empty"` | — | Wait until there is any cargo |
+| `"item_count"` | `condition = { first_signal, comparator, constant }` | Wait until item count meets condition |
+| `"fluid_count"` | `condition = { first_signal, comparator, constant }` | Wait until fluid amount meets condition |
+| `"circuit"` | `condition = { first_signal, comparator, constant \| second_signal }` | Wait until circuit signal meets condition |
+| `"passenger_present"` / `"passenger_not_present"` | — | Passenger on board / not on board |
+| `"fuel_item_count_all"` / `"fuel_item_count_any"` | `condition` (fuel item) | Fuel of all / any locomotive meets condition |
+| `"fuel_full"` | — | Wait until all locomotives are full |
+| `"robots_inactive"`, `"destination_full_or_no_path"`, `"at_station"`, `"not_at_station"`, `"damage_taken"`, … | | see [WaitConditionType](https://lua-api.factorio.com/latest/concepts/WaitConditionType.html) (checked 2.1.19) |
+
+> `"fuel"` and `"no_fuel"` do **not** exist.
 
 ### Comparators
 
+Comparators are **strings** (ComparatorString) – there is no `defines.comparator`:
+
 ```lua
-defines.comparator.less              -- <
-defines.comparator.less_or_equal     -- <=
-defines.comparator.equal             -- =
-defines.comparator.greater_or_equal  -- >=
-defines.comparator.greater           -- >
+"<"   "≤" or "<="   "="   "≥" or ">="   ">"   "≠" or "!="
 ```
 
 ### Adding Wait Conditions
@@ -309,7 +310,7 @@ schedule.change_wait_condition({ schedule_index = 1 }, 2, {
   compare_type = "and",
   condition = {
     first_signal = { type = "item", name = "iron-ore" },
-    comparator = defines.comparator.greater_or_equal,
+    comparator = ">=",
     constant = 1000,
   },
 })
@@ -321,7 +322,7 @@ schedule.change_wait_condition({ schedule_index = 1 }, 3, {
   compare_type = "or",  -- This creates an OR group
   condition = {
     first_signal = { type = "virtual", name = "signal-green" },
-    comparator = defines.comparator.greater,
+    comparator = ">",
     constant = 0,
   },
 })
@@ -371,11 +372,11 @@ schedule.add_interrupt({
   name = "Refuel When Low",
   conditions = {
     {
-      type = "fuel",
+      type = "fuel_item_count_any",
       compare_type = "and",
       condition = {
         first_signal = { type = "item", name = "nuclear-fuel" },  -- or "rocket-fuel", etc.
-        comparator = defines.comparator.less,
+        comparator = "<",
         constant = 10,
       },
     },
@@ -387,7 +388,7 @@ schedule.add_interrupt({
       allows_unloading = false,
       wait_conditions = {
         {
-          type = "fuel",
+          type = "fuel_full",
           compare_type = "and",
         },
       },
@@ -404,7 +405,7 @@ schedule.add_interrupt({
       compare_type = "and",
       condition = {
         first_signal = { type = "virtual", name = "signal-red" },
-        comparator = defines.comparator.greater,
+        comparator = ">",
         constant = 0,
       },
     },
@@ -445,11 +446,11 @@ schedule.change_interrupt(1, {
   name = "Refuel When Low",
   conditions = {
     {
-      type = "fuel",
+      type = "fuel_item_count_any",
       compare_type = "and",
       condition = {
         first_signal = { type = "item", name = "solid-fuel" },
-        comparator = defines.comparator.less,
+        comparator = "<",
         constant = 50,
       },
     },
@@ -477,23 +478,24 @@ local can_nest = schedule.get_inside_interrupt(1)
 
 ### Interrupt Trigger Conditions
 
+Interrupt conditions use the same `WaitConditionType` values as wait conditions
+([WaitConditionType](https://lua-api.factorio.com/latest/concepts/WaitConditionType.html), checked 2.1.19):
+
 | Condition Type | Description |
 |---------------|-------------|
-| `"time"` | Wait for N ticks at current station |
-| `"fuel"` | Train is low on fuel |
-| `"no_fuel"` | Train has run out of fuel |
-| `"item_count"` | Specific item count condition |
-| `"fluid_count"` | Specific fluid count condition |
-| `"circuit"` | Circuit network signal condition |
-| `"empty"` | Train cargo is empty |
-| `"full"` | Train cargo is full |
-| `"passenger_present"` | Passengers are waiting |
-| `"passenger_absent"` | All passengers boarded |
-| `"destination_full_or_no_path"` | Train can't reach destination |
-| `"any_item"` | Any item in cargo matches condition |
-| `"any_fluid"` | Any fluid in cargo matches condition |
-| `"any_fuel"` | Any fuel type matches condition |
-| `"any_signal"` | Any circuit signal matches condition |
+| `"time"`, `"inactivity"` | ticks (`ticks = …`) |
+| `"full"`, `"empty"`, `"not_empty"` | cargo state |
+| `"item_count"`, `"fluid_count"`, `"circuit"` | `condition = { first_signal, comparator, constant }` |
+| `"fuel_item_count_any"`, `"fuel_item_count_all"` | fuel of any / all locomotives meets `condition` |
+| `"fuel_full"` | all locomotives full |
+| `"passenger_present"`, `"passenger_not_present"` | passengers |
+| `"destination_full_or_no_path"` | destination full or unreachable |
+| `"specific_destination_full"`, `"specific_destination_not_full"` | a named stop is full / not full |
+| `"at_station"`, `"not_at_station"` | train is (not) at a given station |
+| `"robots_inactive"`, `"damage_taken"` | robots idle / train damaged |
+| `"request_satisfied"`, `"request_not_satisfied"`, `"all_requests_satisfied"`, `"any_request_not_satisfied"`, `"any_request_zero"`, `"any_planet_import_zero"` | mainly for space platforms |
+
+> `"fuel"`, `"no_fuel"`, `"passenger_absent"`, `"any_item"`, `"any_fluid"`, `"any_fuel"`, `"any_signal"` do **not** exist.
 
 ---
 
@@ -527,7 +529,6 @@ defines.train_state.no_path                -- Train cannot reach its destination
 defines.train_state.no_schedule            -- Train has no schedule
 defines.train_state.arrive_signal          -- Train is arriving at a signal
 defines.train_state.wait_signal            -- Train is waiting at a red signal
-defines.train_state.path_lost              -- Train lost its path (track removed)
 defines.train_state.destination_full       -- Station is full (train limit reached)
 ```
 
@@ -548,7 +549,7 @@ end)
 script.on_event(defines.events.on_train_changed_state, function(event)
   local train = event.train
   local old_state = event.old_state
-  local new_state = event.new_state
+  local new_state = train.state -- das Event liefert nur old_state
 
   -- Map state numbers to names
   local state_names = {

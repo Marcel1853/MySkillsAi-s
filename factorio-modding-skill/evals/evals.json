@@ -203,6 +203,18 @@
         {
           "text": "script.on_init properly initializes storage",
           "type": "code_check"
+        },
+        {
+          "text": "Gets platforms via force.platforms or force.get_space_platforms(location), NOT game.get_space_platforms()",
+          "type": "code_check"
+        },
+        {
+          "text": "Reads thruster fuel as fluids (thruster.get_fluid_count(\"thruster-fuel\") / \"thruster-oxidizer\"), not via a fuel inventory",
+          "type": "code_check"
+        },
+        {
+          "text": "Uses correct event fields: on_space_platform_changed_state → event.platform/old_state (new state = platform.state); cargo pod events → event.cargo_pod",
+          "type": "code_check"
         }
       ]
     },
@@ -378,17 +390,17 @@
     },
     {
       "id": 16,
-      "eval_name": "2.1-programmable-speaker-universe",
-      "prompt": "I want to create a programmable speaker in my Factorio 2.1 mod that plays a sound globally across all surfaces. Show me the prototype definition.",
-      "expected_output": "Code that uses playback_mode = \"Universe\" (renamed from \"Global\" in 2.1.10), not the old \"Global\" value.",
+      "eval_name": "2.1-programmable-speaker-global",
+      "prompt": "I want a programmable speaker in my Factorio 2.1 mod that plays its sound everywhere, not just nearby. Show me how to set that up (prototype plus the runtime parameters).",
+      "expected_output": "Prototype of type programmable-speaker plus runtime code that sets entity.parameters.playback_mode = \"global\" (valid values: \"local\", \"surface\", \"global\").",
       "files": [],
       "assertions": [
         {
-          "text": "Uses playback_mode = \"Universe\", NOT \"Global\" (renamed in 2.1.10)",
+          "text": "Sets playback_mode = \"global\" via entity.parameters (runtime), not in the prototype",
           "type": "code_check"
         },
         {
-          "text": "Does NOT use the deprecated \"Global\" playback mode",
+          "text": "Does NOT use a made-up value like \"Universe\" or capitalised \"Global\"",
           "type": "negative_code_check"
         }
       ]
@@ -396,8 +408,8 @@
     {
       "id": 17,
       "eval_name": "2.1-player-pins-remote-view",
-      "prompt": "Write a Factorio 2.1 control.lua that adds a map pin at the player's position when they press a custom hotkey, lists all pins for the player, and lets them toggle whether the menu leaves remote view when pressing Escape.",
-      "expected_output": "Code that uses LuaPlayer::add_pin(), get_pins(), clear_pins(), and toggle_menu_leaves_remote_view (2.1.9+ APIs).",
+      "prompt": "Write a Factorio 2.1 control.lua that adds a map pin at the player's position when they press a custom hotkey, lists all pins for the player, and prints whether the menu leaves remote view when pressing Escape.",
+      "expected_output": "Code that uses LuaPlayer::add_pin(), get_pins(), clear_pins() and reads toggle_menu_leaves_remote_view (read-only).",
       "files": [],
       "assertions": [
         {
@@ -409,7 +421,7 @@
           "type": "code_check"
         },
         {
-          "text": "Uses player.toggle_menu_leaves_remote_view (2.1.9+)",
+          "text": "Reads toggle_menu_leaves_remote_view (read-only in the API – does not try to write it)",
           "type": "code_check"
         },
         {

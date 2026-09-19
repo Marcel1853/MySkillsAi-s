@@ -17,11 +17,10 @@ local function setup_circuit_monitoring()
       })
 
       for _, cc in ipairs(combinators) do
-        local network = cc.get_circuit_network(defines.wire_type.red)
-        if network and network.signals then
-          -- Check for our control signal
-          local control_signal = network.signals[{type = "virtual", name = "signal-A"}]
-          if control_signal and control_signal.count > 0 then
+        local network = cc.get_circuit_network(defines.wire_connector_id.circuit_red)
+        if network then
+          -- Check for our control signal (get_signal returns 0 if absent)
+          if network.get_signal({type = "virtual", name = "signal-A"}) > 0 then
             -- Signal-A is positive: enable all nearby assemblers
             local assemblers = surface.find_entities_filtered({
               area = {
@@ -86,10 +85,11 @@ local function check_thresholds()
   for _, surface in pairs(game.surfaces) do
     local chests = surface.find_entities_filtered({name = "storage-chest"})
     for _, chest in ipairs(chests) do
-      local network = chest.get_circuit_network(defines.wire_type.red)
+      local network = chest.get_circuit_network(defines.wire_connector_id.circuit_red)
       if network and network.signals then
-        -- Check all signals
-        for signal_id, data in pairs(network.signals) do
+        -- Check all signals: array of { signal = SignalID, count = n }
+        for _, data in pairs(network.signals) do
+          local signal_id = data.signal
           if data.count >= threshold then
             -- Threshold reached! Alert the force that owns the chest
             chest.force.add_custom_alert(
@@ -160,7 +160,7 @@ local function safely_control_entity(unit_number)
   end
 
   -- Safe to use entity here
-  local network = entity.get_circuit_network(defines.wire_type.red)
+  local network = entity.get_circuit_network(defines.wire_connector_id.circuit_red)
   if network then
     -- Process network signals
   end

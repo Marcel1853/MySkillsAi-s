@@ -1,0 +1,103 @@
+# GitHub-Workflow (nach .github/workflows/release.yml kopieren).
+# Bei jedem Push auf main: Version aus info.json lesen. Ist sie auf dem Mod-Portal neu → Zip bauen
+# und hochladen. Gibt es auf GitHub noch kein Release dafür → Release mit Zip und dem Abschnitt der
+# Version aus changelog.txt anlegen. Gepackt wird mit tools/package.sh (dieselbe Zip wie lokal).
+#
+# Voraussetzungen:
+#   - tools/package.sh im Repo (Vorlage: scripts/package.sh des Skills)
+#   - Secret FACTORIO_MOD_PORTAL_TOKEN (API-Schlüssel auf factorio.com, Recht „ModPortal: Upload Mods“)
+#   - Die ERSTE Version von Hand im Portal hochladen: init_upload geht nur für bestehende Mods.
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write # Release-Branch, Tag und GitHub-Release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Werkzeuge installieren
+        run: sudo apt-get install -y jq zip rsync
+
+      - name: Mod-Name, Titel und Version lesen
+        id: info
+        run: |
+          echo "name=$(jq -r '.name' info.json)" >> "$GITHUB_OUTPUT"
+          echo "title=$(jq -r '.title' info.json)" >> "$GITHUB_OUTPUT"
+          echo "version=$(jq -r '.version' info.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Version auf dem Mod-Portal prüfen
+        id: check
+        run: |
+          RESPONSE=$(curl -s "https://mods.factorio.com/api/mods/${{ steps.info.outputs.name }}")
+          if echo "$RESPONSE" | jq -e '.releases' >/dev/null 2>&1; then
+            FOUND=$(echo "$RESPONSE" | jq -r --arg v "${{ steps.info.outputs.version }}" '[.releases[].version] | index($v) != null')
+          else
+            echo "Mod noch nicht auf dem Portal – die erste Version bitte von Hand hochladen."
+            FOUND="missing"
+          fi
+          echo "found=$FOUND" >> "$GITHUB_OUTPUT"
+
+      - name: GitHub-Release prüfen
+        id: gh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "v${{ steps.info.outputs.version }}" >/dev/null 2>&1; then
+            echo "missing=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "missing=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Achtung: „exit 0“ in einem Schritt beendet nur diesen Schritt – deshalb jede Stufe mit if:
+      - name: Zip bauen
+        if: steps.check.outputs.found == 'false' || steps.gh.outputs.missing == 'true'
+        run: |
+          bash tools/package.sh
+          echo "ZIP=dist/${{ steps.info.outputs.name }}_${{ steps.info.outputs.version }}.zip" >> "$GITHUB_ENV"
+
+      - name: Upload anfordern (init_upload)
+        id: init
+        if: steps.check.outputs.found == 'false'
+        run: |
+          RESPONSE=$(curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.FACTORIO_MOD_PORTAL_TOKEN }}" \
+            -F "mod=${{ steps.info.outputs.name }}" \
+            https://mods.factorio.com/api/v2/mods/releases/init_upload)
+          UPLOAD_URL=$(echo "$RESPONSE" | jq -r '.upload_url // empty' 2>/dev/null || true)
+          if [ -z "$UPLOAD_URL" ]; then echo "Keine Upload-Adresse: $RESPONSE"; exit 1; fi
+          echo "upload_url=$UPLOAD_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Zip hochladen (finish_upload)
+        if: steps.check.outputs.found == 'false'
+        run: |
+          RESPONSE=$(curl -s -X POST -F "file=@$ZIP" "${{ steps.init.outputs.upload_url }}")
+          echo "Antwort des Portals: $RESPONSE"
+          if echo "$RESPONSE" | jq -e '.error' >/dev/null 2>&1; then echo "Hochladen fehlgeschlagen."; exit 1; fi
+
+      - name: GitHub-Release anlegen
+        if: steps.gh.outputs.missing == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ steps.info.outputs.version }}"
+          awk -v v="$VERSION" '
+            /^-+$/ { if (found) exit; next }
+            $0 ~ "^Version: " v "$" { found = 1; next }
+            found { print }
+          ' changelog.txt > release-notes.md
+          [ -s release-notes.md ] || echo "Version $VERSION" > release-notes.md
+          gh release create "v$VERSION" "$ZIP" \
+            --title "${{ steps.info.outputs.title }} $VERSION" \
+            --notes-file release-notes.md \
+            --target "${{ github.sha }}"

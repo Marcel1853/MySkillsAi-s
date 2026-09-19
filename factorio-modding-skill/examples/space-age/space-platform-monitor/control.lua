@@ -1,224 +1,89 @@
 -- ============================================================
--- Space Platform Monitor — Space Age Factorio 2.1 mod
+-- Space Platform Monitor — Space Age, Factorio 2.1
 -- ============================================================
--- Demonstrates: LuaSpacePlatform, LuaCargoLandingPad,
--- cargo pod events, space platform events, platform management
+-- Zeigt: on_space_platform_changed_state, defines.space_platform_state,
+-- LuaForce.platforms / get_space_platforms, LuaSpacePlatform (state, hub,
+-- space_location, can_leave_current_location), Cargo-Pod-Events.
+-- API geprüft gegen lua-api.factorio.com (2.1.19, Sept. 2026).
 -- ============================================================
+
+-- defines.space_platform_state → lesbarer Name
+local STATE_NAMES = {}
+for name, value in pairs(defines.space_platform_state) do STATE_NAMES[value] = name end
+
+local function state_name(state) return STATE_NAMES[state] or tostring(state) end
 
 script.on_init(function()
-  storage.sp_monitor = {
-    enabled = true,
-    alert_on_landing = true,
-    auto_request = true,
-    monitored_platforms = {},
-    last_scan_tick = 0
-  }
+  storage.sp_monitor = { alert_on_arrival = true, platforms = {} } -- [platform.index] = { last_state }
 end)
 
--- Track when space platforms change state
+-- Plattform wechselt den Zustand. Event-Daten: platform, old_state (neuer Zustand = platform.state)
 script.on_event(defines.events.on_space_platform_changed_state, function(event)
-  local platform = event.space_platform
-  if not platform or not platform.valid then return end
+  local platform = event.platform
+  if not (platform and platform.valid) then return end
+  local new_state = platform.state
 
-  log(string.format(
-    "[SP Monitor] Platform '%s' changed state: %s → %s",
-    platform.name,
-    event.old_state,
-    event.new_state
-  ))
+  log(("[SP Monitor] '%s': %s → %s"):format(platform.name, state_name(event.old_state), state_name(new_state)))
 
-  -- Alert players when platform arrives
-  -- Use platform.hub.force.add_custom_alert instead of per-player loop
-  if event.new_state == "arrived" and storage.sp_monitor.alert_on_landing then
+  -- Angekommen: wartet an einer Station (über einem Planeten)
+  if new_state == defines.space_platform_state.waiting_at_station and storage.sp_monitor.alert_on_arrival then
     local hub = platform.hub
     if hub and hub.valid then
-      hub.force.add_custom_alert(
-        hub,
-        {type = "item", name = "space-platform-starter-pack"},
-        {"", "Platform '", platform.name, "' has arrived!"},
-        true  -- show on map
-      )
+      local where = platform.space_location and platform.space_location.name or "?"
+      hub.force.add_custom_alert(hub, { type = "item", name = "space-platform-starter-pack" },
+        { "", "Platform ", platform.name, " arrived at ", where }, true) ---@diagnostic disable-line: assign-type-mismatch
     end
   end
 
-  -- Update monitored platforms
-  if storage.sp_monitor.monitored_platforms[platform.index] then
-    storage.sp_monitor.monitored_platforms[platform.index].last_state = event.new_state
-  end
+  storage.sp_monitor.platforms[platform.index] = { last_state = new_state }
 end)
 
--- Track cargo pod deliveries
+-- Cargo-Pod-Events. Event-Daten laut API:
+--   on_cargo_pod_delivered_cargo:      cargo_pod, spawned_container
+--   on_cargo_pod_started_ascending:    cargo_pod, player_index?
+--   on_cargo_pod_finished_descending:  cargo_pod, launched_by_rocket, player_index?
 script.on_event(defines.events.on_cargo_pod_delivered_cargo, function(event)
-  local pad = event.cargo_landing_pad
-  if not pad or not pad.valid then return end
-
-  log(string.format(
-    "[SP Monitor] Cargo delivered to pad '%s' on surface '%s'",
-    pad.name,
-    pad.surface and pad.surface.name or "unknown"
-  ))
-
-  -- Log delivered items
-  if event.items then
-    for _, item in ipairs(event.items) do
-      log(string.format(
-        "  → %s x%d [%s]",
-        item.name,
-        item.count,
-        item.quality or "normal"
-      ))
-    end
-  end
-
-  -- Auto-request next delivery if enabled
-  if storage.sp_monitor.auto_request then
-    auto_request_delivery(pad)
+  local container = event.spawned_container -- Kiste, die am Boden entsteht (falls kein Landeplatz)
+  if container and container.valid then
+    log("[SP Monitor] Cargo pod dropped a container on " .. container.surface.name)
   end
 end)
 
--- Track when cargo pods start ascending (launching)
-script.on_event(defines.events.on_cargo_pod_started_ascending, function(event)
-  log("[SP Monitor] Cargo pod ascending from " ..
-    (event.cargo_landing_pad and event.cargo_landing_pad.name or "unknown"))
-end)
-
--- Track when cargo pods finish descending (landing)
 script.on_event(defines.events.on_cargo_pod_finished_descending, function(event)
-  local pad = event.cargo_landing_pad
-  if pad and pad.valid then
-    log("[SP Monitor] Cargo pod landed at " .. pad.name)
+  local pod = event.cargo_pod
+  if pod and pod.valid then
+    log(("[SP Monitor] Cargo pod landed on %s (launched by rocket: %s)")
+      :format(pod.surface.name, tostring(event.launched_by_rocket)))
   end
 end)
 
--- Periodic scan of all space platforms
-script.on_nth_tick(600, function(event)  -- Every 10 seconds
-  if not storage.sp_monitor or not storage.sp_monitor.enabled then return end
-
-  local platforms = game.get_space_platforms()
-
-  for _, platform in ipairs(platforms) do
+-- Alle Plattformen einer Force: LuaForce.platforms (index → LuaSpacePlatform)
+local function list_platforms(player)
+  local count = 0
+  for _, platform in pairs(player.force.platforms) do
     if platform.valid then
-      -- Register platform if not already monitored
-      if not storage.sp_monitor.monitored_platforms[platform.index] then
-        storage.sp_monitor.monitored_platforms[platform.index] = {
-          name = platform.name,
-          first_seen_tick = event.tick,
-          last_state = platform.state
-        }
-        log(string.format(
-          "[SP Monitor] New platform discovered: '%s'",
-          platform.name
-        ))
-      end
-
-      -- Log platform status summary
-      local location_name = "unknown"
-      if platform.space_location then
-        location_name = platform.space_location.name
-      elseif platform.last_visited_space_location then
-        location_name = platform.last_visited_space_location.name .. " (transit)"
-      end
-
-      log(string.format(
-        "[SP Monitor] Platform '%s': state=%s, location=%s, weight=%.1f, speed=%.2f",
-        platform.name,
-        platform.state,
-        location_name,
-        platform.weight or 0,
-        platform.speed or 0
-      ))
-
-      -- Check if platform is paused
-      if platform.paused then
-        for _, player in pairs(game.connected_players) do
-          player.print(string.format(
-            "⚠ Platform '%s' is PAUSED at %s",
-            platform.name, location_name
-          ))
-        end
-      end
+      count = count + 1
+      local where = platform.space_location and platform.space_location.name or "unterwegs"
+      player.print(("%s – %s – %s – kann los: %s"):format(platform.name, state_name(platform.state), where,
+        tostring(platform.can_leave_current_location())))
     end
   end
-
-  storage.sp_monitor.last_scan_tick = event.tick
-end)
-
--- Custom command: list all platforms
-commands.add_command("list-platforms", "List all space platforms", function(command)
-  local player = game.get_player(command.player_index)
-  if not player then return end
-
-  local platforms = game.get_space_platforms()
-  if #platforms == 0 then
-    player.print("No space platforms found.")
-    return
-  end
-
-  player.print("=== Space Platforms ===")
-  for _, platform in ipairs(platforms) do
-    if platform.valid then
-      local location = platform.space_location and platform.space_location.name or "in transit"
-      player.print(string.format(
-        "  %s — State: %s | Location: %s | Weight: %.1f | Speed: %.2f",
-        platform.name, platform.state, location, platform.weight or 0, platform.speed or 0
-      ))
-    end
-  end
-end)
-
--- Custom command: toggle platform monitoring
-commands.add_command("toggle-monitor", "Toggle space platform monitoring on/off", function(command)
-  if not storage.sp_monitor then return end
-  storage.sp_monitor.enabled = not storage.sp_monitor.enabled
-  local player = game.get_player(command.player_index)
-  if player then
-    player.print("Space platform monitoring: " .. (storage.sp_monitor.enabled and "ON" or "OFF"))
-  end
-end)
-
--- Auto-request delivery to a cargo pad
-function auto_request_delivery(pad)
-  if not pad or not pad.valid then return end
-
-  local behavior = pad.get_control_behavior()
-  if not behavior then return end
-
-  -- Example: request iron plates and copper plates
-  local requests = {
-    {item = "iron-plate", count = 200, quality = "normal"},
-    {item = "copper-plate", count = 100, quality = "normal"},
-  }
-
-  for i, req in ipairs(requests) do
-    behavior.set_request_slot(req, i)
-  end
-
-  log(string.format(
-    "[SP Monitor] Auto-requested delivery to %s: %d items",
-    pad.name, #requests
-  ))
+  if count == 0 then player.print("No space platforms found.") end
 end
 
--- Check if a platform can leave its current location
-commands.add_command("can-leave", "Check if a platform can leave its current location", function(command)
+commands.add_command("list-platforms", "List the space platforms of your force", function(command)
   local player = game.get_player(command.player_index)
-  if not player then return end
+  if player then list_platforms(player) end
+end)
 
-  local param = command.parameter
-  if not param then
-    player.print("Usage: /can-leave <platform-name>")
+-- Plattformen über einem bestimmten Ort: LuaForce.get_space_platforms(location)
+commands.add_command("platforms-at", "List platforms above a planet, e.g. /platforms-at nauvis", function(command)
+  local player = game.get_player(command.player_index)
+  if not (player and command.parameter) then return end
+  local ok, platforms = pcall(player.force.get_space_platforms, command.parameter)
+  if not ok then
+    player.print("Unknown location: " .. command.parameter)
     return
   end
-
-  local platform = game.get_space_platform(param)
-  if not platform or not platform.valid then
-    player.print("Platform not found: " .. param)
-    return
-  end
-
-  if platform:can_leave_current_location() then
-    player.print(platform.name .. " CAN leave " .. (platform.space_location and platform.space_location.name or "current location"))
-  else
-    player.print(platform.name .. " CANNOT leave yet (waiting on deliveries)")
-  end
+  for _, platform in pairs(platforms) do player.print(platform.name) end
 end)

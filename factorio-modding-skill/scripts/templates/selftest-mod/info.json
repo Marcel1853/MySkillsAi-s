@@ -1,0 +1,8 @@
+{
+  "name": "my-mod-selftest",
+  "version": "0.0.1",
+  "title": "My Mod Selftest",
+  "author": "test",
+  "factorio_version": "2.1",
+  "dependencies": ["base", "my-mod"]
+}

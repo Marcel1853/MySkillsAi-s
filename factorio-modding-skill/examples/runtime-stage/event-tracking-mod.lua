@@ -132,12 +132,9 @@ script.on_event(defines.events.on_entity_died, function(event)
   local entity = event.entity
   local cause = event.cause
 
-  -- Track biter kills
+  -- Track biter kills (on_entity_died hat kein player_index; Verursacher steht in event.cause)
   if cause and cause.valid and cause.type == "unit" then
-    local activity = storage.player_activity[event.player_index]
-    if activity then
-      activity.actions = activity.actions + 1
-    end
+    storage.biter_kills = (storage.biter_kills or 0) + 1
   end
 
   -- Announce important entity deaths
@@ -203,9 +200,9 @@ commands.add_command("runtime-stats", "Show runtime statistics", function(event)
 
   player.print("=== Runtime Statistics ===")
   player.print("Events processed: " .. storage.events_processed)
-  player.print("Tracked entities: " .. #serpent.keys(storage.tracked_entities))
+  player.print("Tracked entities: " .. table_size(storage.tracked_entities)) -- table_size: Factorio-Hilfsfunktion
   player.print("Current tick: " .. game.tick)
-  player.print("Surface count: " .. #serpent.keys(game.surfaces))
+  player.print("Surface count: " .. #game.surfaces)
 end)
 
 -- ===== CONFIGURATION CHANGED =====

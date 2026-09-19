@@ -1,0 +1,8 @@
+{
+  "name": "shots-helper",
+  "version": "0.0.1",
+  "title": "Screenshot Helper",
+  "author": "test",
+  "factorio_version": "2.1",
+  "dependencies": ["base", "my-mod"]
+}

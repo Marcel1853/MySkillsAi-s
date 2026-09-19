@@ -24,7 +24,7 @@ Covers the complete Factorio Lua API through organized reference files and pract
 > This skill's reference files are snapshots and may be outdated. **When in doubt about any method signature, property, or define, ALWAYS verify against the official live documentation:**
 > - **Runtime API:** [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/)
 > - **Prototype/Data-Stage:** [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/) (prototype definitions section)
-> - **Version this skill was last updated against:** Factorio 2.1.11 experimental (stable: 2.0.x)
+> - **Version this skill was last updated against:** Factorio 2.1.11 experimental (stable: 2.0.x); corrections, `14-testing-and-publishing.md` and `15-pitfalls.md` verified against **2.1.19** (Sept. 2026)
 >
 > API features marked `2.1.x experimental` may not be available in the current stable release (2.0.x). Always check which version your users target.
 
@@ -35,7 +35,8 @@ Factorio does **not** use standard Lua. Key differences:
 - **No `os` or `io` libraries** — Factorio sandboxes these for security
 - **`__self` removed in 2.0** — Check `type(obj) == "userdata"` to identify Lua objects
 - **`serpent` available** — Debug tables: `serpent.block(my_table)`
-- **`table.deepcopy()` built-in** — Use instead of manual deep copy
+- **`table.deepcopy()` only in the prototype stage** — at runtime use `require("util")` and `util.table.deepcopy()`
+- **`require` only while control.lua is being parsed** — never inside functions/events at runtime
 - **`log()` writes to factorio-current.log** — Use for debugging, not `print()`
 - **LuaObjects are userdata, not tables** — `pairs()` doesn't work on them directly
 - **All globals are engine-provided** — `game`, `script`, `data`, `prototypes`, `defines`, `remote`, `commands`
@@ -104,10 +105,12 @@ my-mod/
 When the user asks about Factorio modding:
 
 1. **Identify the API stage** they need (Settings, Prototype/Data, or Runtime/Control)
+   - **Read `references/15-pitfalls.md` first** — verified traps that cost hours otherwise
 2. **Read the relevant reference file(s)** from `references/` for detailed API documentation
 3. **Use the example files** in `examples/` as starting points
 4. **Follow the Data Lifecycle** — understand which file runs when (see `references/data-lifecycle.md`)
 5. **⚠️ Verify against live docs** — If any API seems uncertain, check [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/) before using
+6. **Test headless** and lint before handing over (`scripts/headless-test.sh`, `scripts/lint.sh`); package with `scripts/package.sh`
 
 ## Navigation
 
@@ -129,7 +132,7 @@ When the user asks about Factorio modding:
 | [04-runtime-api.md](references/04-runtime-api.md) | **Kern-API:** `script`, `game`, `LuaEntity`, `LuaPlayer`, `LuaSurface`, `LuaItemStack`, `LuaInventory`, `LuaForce`, Fluid-API (2.1 Overhaul), `prototypes` Read-Only-Zugriff, 2.1 Breaking Changes |
 | [07-events.md](references/07-events.md) | **Alle Factorio-Events:** `defines.events.*` vollständig katalogisiert — Build/Mine/Craft/Combat/Train/Platform/GUI-Events mit Event-Filter-Patterns |
 | [08-additional-runtime.md](references/08-additional-runtime.md) | Erweiterte Runtime-Klassen: `LuaForce`, `LuaTechnology`, `LuaRecipe`, `LuaTrain`, `LuaSchedule`, `LuaSpacePlatform`, `LuaLogisticNetwork`, `LuaTransportLine` |
-| [09-defines.md](references/09-defines.md) | Enums & Konstanten: `defines.events`, `defines.direction`, `defines.inventory`, `defines.train_state`, `defines.comparator`, `defines.wire_type`, `defines.control_behavior` |
+| [09-defines.md](references/09-defines.md) | Enums & Konstanten **aus der API erzeugt** (`scripts/gen_defines_reference.py`): `defines.events`, `defines.direction`, `defines.inventory`, `defines.train_state`, `defines.wire_connector_id`, `defines.space_platform_state` … plus Liste oft erfundener defines (z. B. gibt es kein `defines.comparator`) |
 
 ### 🖥️ GUI & Circuit Network
 | Reference | Description |
@@ -148,6 +151,12 @@ When the user asks about Factorio modding:
 |-----------|-------------|
 | [11-graphics-and-art.md](references/11-graphics-and-art.md) | Grafik-Styleguide (nur Referenz, keine API): Sprite-Formate, Icon-Größen, Entity-Animationen, Technology-Icons, Factorio-Art-Style-Konventionen |
 | [13-locale-reference.md](references/13-locale-reference.md) | Lokalisierung: `.cfg`-Format, EN + DE Templates, `LocalisedString`-Patterns, GUI-Texte, Item/Entity/Technology-Beschreibungen, Pluralformen |
+
+### 🧪 Testing, Publishing & Pitfalls (from a real project, 2.1.19)
+| Reference | Description |
+|-----------|-------------|
+| [14-testing-and-publishing.md](references/14-testing-and-publishing.md) | Headless-Tests mit eigenem Datenordner, UPS messen (`--benchmark-verbose all`), Lint wie VS Code (FMTK), Packen, Name/Changelog/Thumbnail-Regeln, Mod-Portal (Kategorie, Tags, API, Upload), GitHub-Workflow + Release, Screenshots mit Grafik (sicher!), Tipps & Tricks mit Szenen |
+| [15-pitfalls.md](references/15-pitfalls.md) | **Geprüfte Stolperfallen:** storage/LuaObjects, `require`, Szenario-Reihenfolge, `-0`, GUI-Abstände, Schaltungs-Panel, Züge (temporäre Halte, Wegpunkte, Wartebedingungen), Greifarm-Richtung, Kabelreichweite, Pumpen/Tanks an Flüssigkeitswagen, Gleisgeometrie |
 
 ### 🤖 AI Personas
 | Reference | Description |
@@ -187,13 +196,15 @@ When a save is loaded, Factorio runs these 5 steps in order:
 
 **Critical `storage` rules:**
 - `storage` replaces the old `global` table (renamed in 2.0)
-- Only store serializable data — no Lua objects, no functions
-- Use `entity.unit_number` for entity references, not the entity itself
+- Allowed: nil, strings, numbers, booleans, tables and **references to LuaObjects** (check `.valid` before use)
+- Not allowed: functions (error on save); unregistered metatables are dropped (use `script.register_metatable`)
 - `on_load()` can READ `storage` but MUST NOT WRITE to it (causes error)
 - `on_init()` is the correct place to INITIALIZE `storage`
 - `storage` IS available during `control.lua` top-level execution (since 2.0), but `game` is NOT
 
 **Multiplayer joining:** Only steps 1 (`control.lua`) and 4 (`on_load()`) run.
+
+**Scenarios:** a scenario's `on_init` runs **before** the mods' `on_init` (and a mod's `storage` is set up in its own `on_init`) → set mods up from a scenario in the **first tick**, not in `on_init`. Details: `references/15-pitfalls.md`.
 
 Full details: `references/data-lifecycle.md`
 
@@ -216,6 +227,13 @@ Full details: `references/data-lifecycle.md`
 
 > `+` prefix = optional recommended dependency (new in 2.1). Auto-enabled by default but can be disabled.
 > `?` prefix = optional dependency. Without prefix = required.
+
+## Mod Name, Changelog & Portal (verified)
+
+- Portal name: **more than 3 and fewer than 50 characters**, only alphanumerics, `-` and `_`. The internal name **cannot be changed after the first upload**.
+- `changelog.txt`: strict format; use only the recognised categories (Major Features, Features, Minor Features, Graphics, Sounds, Optimizations, Balancing, Combat Balancing, Circuit Network, Changes, Bugfixes, Modding, Scripting, Gui, Control, Translation, Debug, Ease of use, Info, Locale, Compatibility).
+- `thumbnail.png`: ideally 144 × 144 px.
+- First release must be uploaded by hand; later versions can use the API (`init_upload`). See `references/14-testing-and-publishing.md` and `scripts/release.yml`.
 
 ## Locale Files — Recommended EN + DE
 
@@ -241,9 +259,9 @@ Full locale examples and LocalisedString patterns: `references/13-locale-referen
 | Logistic Container | `circuit_exclusive_mode_of_operation` | Removed. Use `set_requests` and `read_contents` together directly. | 2.0 |
 | Molten metal recipes | `"molten-iron"`, `"molten-copper"` | Renamed to `"iron-ore-melting"`, `"copper-ore-melting"` | 2.0 |
 | Inventory GUI element | None | Added `LuaGuiElement` type `"inventory"` and `on_gui_inventory_action` event | 2.1.0 |
-| Programmable Speaker | Playback mode `Global` | Renamed to `Universe` | 2.1.10 |
+| Programmable Speaker | — | Runtime `playback_mode` values are `"local"`, `"surface"`, `"global"` (checked 2.1.19; an older note claimed a rename to `Universe` – not in the API) | – |
 | LuaPlayer Pins | `add_pin()` only | `add_pin()` now returns `LuaPin`; added `get_pins()`, `clear_pins()` | 2.1.10 |
-| LuaPlayer Remote View | N/A | Added `toggle_menu_leaves_remote_view` read/write | 2.1.9 |
+| LuaPlayer Remote View | N/A | Added `toggle_menu_leaves_remote_view` (read-only in API 2.1.19 – player setting) | 2.1.9 |
 | Entity Flip | N/A | Added `LuaEntity::flip` read | 2.1.0 |
 | Entity Protection | N/A | Added `LuaEntity::protected` read/write | 2.1.0 |
 | Entity Upgrades | Must mark for upgrade first | `apply_upgrade()` can now directly upgrade without marking | 2.1.10 |
@@ -317,7 +335,7 @@ Quality affects: `max_shield_value` (energy shields), `movement_bonus` (exoskele
 11. **Never modify `storage` in `on_load()`** — it's read-only; only re-setup metatables/conditional handlers.
 12. **Use `script.on_configuration_changed()`** for mod updates on existing saves.
 13. **Verify API against live docs** — When unsure about a method or signature, check [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/) rather than guessing from this skill's snapshot.
-14. **Use `Universe` not `Global`** for Programmable Speaker playback mode (renamed in 2.1.10).
+14. **Programmable Speaker `playback_mode`** is `"local"`, `"surface"` or `"global"` (API 2.1.19) – verify before relying on any rename.
 15. **Use `LuaSchedule` API** — Don't assign `train.schedule = {}` directly; it overwrites interrupts.
 
 ## Key API Objects (Updated for 2.1.11)

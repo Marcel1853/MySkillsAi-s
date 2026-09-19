@@ -10,9 +10,23 @@ Usage: python3 generate_mod.py <mod_name> <title> [dependencies]
 Example: python3 generate_mod.py my-mod "My Mod" "base >= 2.1,+ space-age"
 """
 
+import datetime
 import json
 import os
+import re
+import shutil
 import sys
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def check_name(mod_name):
+    """Mod-Portal: mehr als 3 und weniger als 50 Zeichen, nur Buchstaben, Ziffern, - und _.
+    Der interne Name lässt sich nach dem ersten Upload nicht mehr ändern."""
+    if not re.fullmatch(r"[A-Za-z0-9_-]{4,49}", mod_name):
+        print(f"Name '{mod_name}' passt nicht zu den Regeln des Mod-Portals "
+              f"(4–49 Zeichen, nur A–Z, a–z, 0–9, '-' und '_').")
+        sys.exit(1)
 
 
 def generate_mod(mod_name, title, dependencies=None):
@@ -20,6 +34,8 @@ def generate_mod(mod_name, title, dependencies=None):
 
     if dependencies is None:
         dependencies = ["base >= 2.1"]
+    check_name(mod_name)
+    today = datetime.date.today().isoformat()
 
     mod_dir = mod_name
 
@@ -32,13 +48,15 @@ def generate_mod(mod_name, title, dependencies=None):
         f"{mod_dir}/graphics/icons",
         f"{mod_dir}/graphics/entity",
         f"{mod_dir}/graphics/technology",
+        f"{mod_dir}/tools",
+        f"{mod_dir}/.github/workflows",
     ]:
         os.makedirs(d, exist_ok=True)
 
     # --- info.json ---
     info = {
         "name": mod_name,
-        "version": "0.1.0",
+        "version": "0.0.1",
         "title": title,
         "author": "Your Name",
         "factorio_version": "2.1",
@@ -53,10 +71,10 @@ def generate_mod(mod_name, title, dependencies=None):
     with open(f"{mod_dir}/changelog.txt", "w") as f:
         f.write(
             "---------------------------------------------------------------------------------------------------\n"
-            f"Version: 0.1.0\n"
-            f"Date: 2026-06-24\n"
-            f"  Features:\n"
-            f"    - Initial release for Factorio 2.1\n"
+            f"Version: 0.0.1\n"
+            f"Date: {today}\n"
+            f"  Major Features:\n"
+            f"    - Initial release.\n"
             f"---------------------------------------------------------------------------------------------------\n"
         )
 
@@ -122,7 +140,7 @@ def generate_mod(mod_name, title, dependencies=None):
             f"script.on_init(function()\n"
             f"  storage.{mod_name.replace('-', '_')} = storage.{mod_name.replace('-', '_')} or {{\n"
             f"    enabled = true,\n"
-            f'    version = "0.1.0",\n'
+            f'    version = "0.0.1",\n'
             f"  }}\n"
             f'  log("[{mod_name}] Mod initialized!")\n'
             f"end)\n\n"
@@ -196,6 +214,18 @@ def generate_mod(mod_name, title, dependencies=None):
             f"[technology-name]\n{mod_id}-tech={title} Technologie\n"
         )
 
+    # --- Werkzeuge: Packen, Release-Workflow, .gitignore ---
+    shutil.copy(os.path.join(SCRIPT_DIR, "package.sh"), f"{mod_dir}/tools/package.sh")
+    os.chmod(f"{mod_dir}/tools/package.sh", 0o755)
+    shutil.copy(os.path.join(SCRIPT_DIR, "release.yml"), f"{mod_dir}/.github/workflows/release.yml")
+    with open(f"{mod_dir}/.gitignore", "w") as f:
+        f.write(
+            "# Nur lokal: Notizen, gepackte Zips, Anweisungen für KI-Assistenten\n"
+            "docs/\n"
+            "dist/\n"
+            "CLAUDE.md\n"
+        )
+
     # --- Summary ---
     print(f"Generated mod '{mod_name}' in directory: {mod_dir}/")
     print(f"  - info.json")
@@ -215,6 +245,10 @@ def generate_mod(mod_name, title, dependencies=None):
     print(f"  - locale/de/{mod_name}.cfg")
     print(f"  - migrations/")
     print(f"  - graphics/icons/, entity/, technology/")
+    print(f"  - tools/package.sh (Zip nach dist/, ohne Entwicklungsdateien)")
+    print(f"  - .github/workflows/release.yml (Portal-Upload + GitHub-Release bei neuer Version)")
+    print(f"  - .gitignore")
+    print("Noch zu tun: thumbnail.png (144x144) anlegen; erste Version von Hand im Mod-Portal hochladen.")
 
 
 if __name__ == "__main__":

@@ -1,368 +1,162 @@
 # Factorio 2.1 API: Rendering & Visualization
 
-> **⚠️ Version-Hinweis:** Stand Factorio 2.1.11 experimental. Bei Unsicherheit über aktuelle Rendering-APIs IMMER gegen die offizielle Doku verifizieren: [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/). Factorio 2.1 (experimental) ändert sich wöchentlich. Die Rendering-API hat sich seit 2.0 nicht wesentlich geändert, aber neue Render-Layer oder Parameter können hinzugekommen sein.
+> **Stand:** Signaturen geprüft gegen [LuaRendering](https://lua-api.factorio.com/latest/classes/LuaRendering.html)
+> und [LuaRenderObject](https://lua-api.factorio.com/latest/classes/LuaRenderObject.html), Factorio 2.1.19 (Sept. 2026).
+> Bei Unsicherheit immer die offizielle Doku prüfen.
 
-## Table of Contents
+## Wichtig: Was es in 2.x **nicht** mehr gibt
 
-- [LuaRendering Methods](#luarendering-methods)
-  - [rendering.draw_sprite](#rendering.draw_sprite)
-  - [rendering.draw_text](#rendering.draw_text)
-  - [rendering.draw_line](#rendering.draw_line)
-  - [rendering.draw_rectangle](#rendering.draw_rectangle)
-  - [rendering.draw_circle](#rendering.draw_circle)
-  - [rendering.draw_polygon](#rendering.draw_polygon)
-  - [rendering.draw_light](#rendering.draw_light)
-- [Render Object Management](#render-object-management)
-- [Render Layers](#render-layers)
-- [Performance Tips](#performance-tips)
-- [Common Visualization Patterns](#common-visualization-patterns)
-  - [Entity Range Indicator](#entity-range-indicator)
-  - [Selection Box Highlight](#selection-box-highlight)
-  - [Arrow Indicator](#arrow-indicator)
-  - [Player Position Marker](#player-position-marker)
+Ältere Beispiele (1.1) arbeiten mit Zahl-IDs und Funktionen auf `rendering`. In 2.x liefert jedes
+`draw_*` ein **`LuaRenderObject`**; Änderungen und Löschen laufen über dieses Objekt.
 
+| Gibt es nicht (1.1 / erfunden) | Stattdessen (2.x) |
+|---|---|
+| `rendering.destroy(id)` | `obj.destroy()` |
+| `rendering.get(id)` | `rendering.get_object_by_id(id)` → `LuaRenderObject?` |
+| `rendering.set_color(id, …)`, `rendering.is_valid(id)` | `obj.color = …`, `obj.valid` |
+| Parameter `tag`, `rendering.destroy_by_tag`, `rendering.find_all` | Objekte selbst merken (Tabelle in `storage`) |
+| Parameter `only_for_player`, `force`, `surface_forced` | `players = {…}`, `forces = {…}` |
+| `draw_polygon{ points = … }` | `draw_polygon{ vertices = … }` (Dreiecks-Streifen) |
+| `draw_light{ size = … }` | `draw_light{ scale = … }` |
+| Event `on_mod_disabled` | gibt es nicht; beim Entfernen der Mod verschwinden ihre Render-Objekte ohnehin |
 
-- [LuaRendering Methods](#)
-- [Render Object Management](#)
-- [Render Layers](#)
-- [Performance Tips](#)
-- [Common Visualization Patterns](#)
+Alles, was die eigene Mod gezeichnet hat, auf einmal löschen: `rendering.clear(script.mod_name)`.
+Alle eigenen Objekte holen: `rendering.get_all_objects(script.mod_name)`.
 
+## Gemeinsame Parameter aller `draw_*`
 
+`surface` (Pflicht), `time_to_live` (Ticks, danach automatisch weg), `blink_interval`,
+`forces` (nur für diese Forces sichtbar), `players` (nur für diese Spieler), `visible`,
+`only_in_alt_mode`, `render_mode` („game“/„chart“), `tall`. `draw_on_ground` bei Linie, Text,
+Kreis, Rechteck, Bogen, Polygon. **`render_layer` nur bei `draw_sprite` und `draw_animation`.**
 
-Complete reference for the LuaRendering API, used to draw visual elements in the game world.
+`target` ist eine `ScriptRenderTarget`: eine Position **oder** ein Entity (dann folgt das Objekt
+dem Entity und verschwindet mit ihm).
 
-## LuaRendering Methods
-
-All rendering methods return a `LuaRenderObject` with a unique ID that can be used to manage the render element.
-
-### rendering.draw_sprite
-
-Draw a sprite (icon/texture) at a position in the game world.
+## Die Zeichenfunktionen
 
 ```lua
-local sprite = rendering.draw_sprite{
-  sprite = "utility/transport_belt",      -- Sprite path
-  target = {x = 10, y = 10},             -- MapPosition or LuaEntity
-  surface = game.surfaces["nauvis"],     -- LuaSurface
-  time_to_live = 600,                    -- Ticks before auto-removal (optional)
-  render_layer = "entity-info-icon",     -- Layer (optional, default: "above-inserters")
-  only_for_player = false,               -- Show only to specific player
-  force = nil,                           -- Show only to specific force
-  players = nil,                         -- Show only to specific players (array of indices)
-  tag = "my_mod_label"                   -- Custom tag for batch operations
-}
+local surface = game.surfaces["nauvis"]
 
--- Sprite paths:
--- "utility/transport_belt" — belt arrow
--- "utility/close_white" — close button icon
--- "item/iron-plate" — item icons
--- "entity/assembling-machine-3" — entity sprites
--- "virtual-signal/signal-A" — virtual circuit signals
-```
-
-### rendering.draw_text
-
-Draw text label at a position.
-
-```lua
-local text = rendering.draw_text{
-  text = "Factory Zone A",              -- String or LocalisedString
-  target = {x = 50, y = 50},           -- MapPosition or LuaEntity
-  surface = game.surfaces["nauvis"],    -- LuaSurface
-  color = {r = 1, g = 1, b = 1, a = 1}, -- RGBA color (default: white)
-  scale = 1.5,                          -- Text scale (default: 1.0)
-  time_to_live = 1200,                  -- Auto-remove after ticks
-  alignment = "center",                 -- "left", "center", "right"
-  render_layer = "entity-info-icon",    -- Drawing layer
-  only_for_player = false,
-  tag = "zone_labels",
-  surface_forced = game.surfaces["nauvis"]  -- Force surface
-}
-
--- LocalisedString example:
-local loc_text = rendering.draw_text{
-  text = {"", {"entity-name.assembling-machine-1"}, ": ", {"item-productivity.productivity-bonus-description", 10}},
-  target = {x = 0, y = 0},
-  surface = surface
-}
-```
-
-### rendering.draw_line
-
-Draw a line between two points.
-
-```lua
+-- Linie (optional gestrichelt)
 local line = rendering.draw_line{
-  from = {x = 0, y = 0},              -- Start position
-  to = {x = 100, y = 100},            -- End position
-  color = {r = 1, g = 0, b = 0},      -- Line color
-  width = 2,                           -- Line width in pixels
-  surface = game.surfaces["nauvis"],   -- LuaSurface
-  time_to_live = 300,                  -- Duration in ticks
-  render_layer = "higher-object-above",
-  tag = "boundary_lines",
-  players = {1}                        -- Show only to player 1
+  surface = surface, from = {0, 0}, to = {10, 5},
+  color = {r = 1, g = 0, b = 0}, width = 2,           -- width in Pixeln
+  dash_length = 0.5, gap_length = 0.25,               -- optional
+  time_to_live = 300, players = {1},                  -- nur Spieler 1
 }
-```
 
-### rendering.draw_rectangle
-
-Draw a rectangular outline or filled rectangle.
-
-```lua
-local rect = rendering.draw_rectangle{
-  left_top = {x = 0, y = 0},          -- Top-left corner
-  right_bottom = {x = 50, y = 50},    -- Bottom-right corner
-  color = {r = 0, g = 1, b = 0, a = 0.3},  -- RGBA
-  filled = true,                       -- Fill the rectangle
-  surface = game.surfaces["nauvis"],
-  time_to_live = 600,
-  render_layer = "lower-object",
-  tag = "selection_area"
+-- Text (String oder LocalisedString)
+local label = rendering.draw_text{
+  surface = surface, target = some_entity,            -- folgt dem Entity
+  text = {"entity-name.assembling-machine-1"},
+  color = {1, 1, 1}, scale = 1.5, alignment = "center",
+  vertical_alignment = "middle", use_rich_text = true,
 }
-```
 
-### rendering.draw_circle
-
-Draw a circle (outline or filled).
-
-```lua
+-- Kreis
 local circle = rendering.draw_circle{
-  target = {x = 25, y = 25},          -- Center position or LuaEntity
-  radius = 10,                         -- Circle radius
-  color = {r = 0, g = 0, b = 1},      -- Circle color
-  filled = false,                      -- Filled or outline
-  surface = game.surfaces["nauvis"],
-  time_to_live = 600,
-  render_layer = "entity-info-icon",
-  tag = "range_indicator"
+  surface = surface, target = {25, 25}, radius = 10,
+  color = {r = 0, g = 0, b = 1, a = 0.3}, filled = true,
 }
-```
 
-### rendering.draw_polygon
+-- Rechteck
+local rect = rendering.draw_rectangle{
+  surface = surface, left_top = {0, 0}, right_bottom = {50, 50},
+  color = {r = 0, g = 1, b = 0, a = 0.3}, filled = true, draw_on_ground = true,
+}
 
-Draw a polygon shape.
+-- Bogen / Ring-Ausschnitt
+local arc = rendering.draw_arc{
+  surface = surface, target = {0, 0}, min_radius = 4, max_radius = 5,
+  start_angle = 0, angle = math.pi, color = {1, 0.5, 0},
+}
 
-```lua
+-- Polygon: Dreiecks-Streifen; vertices = array[ScriptRenderTarget] (Positionen oder Entities)
 local poly = rendering.draw_polygon{
-  points = {                           -- Array of positions
-    {x = 0, y = 0},
-    {x = 10, y = 0},
-    {x = 10, y = 10},
-    {x = 5, y = 15},
-    {x = 0, y = 10}
-  },
-  color = {r = 1, g = 0.5, b = 0, a = 0.5},
-  filled = true,
-  surface = game.surfaces["nauvis"],
-  time_to_live = 3600,
-  tag = "zone_boundaries"
+  surface = surface, color = {r = 1, g = 0.5, b = 0, a = 0.5},
+  vertices = { {0, 0}, {10, 0}, {0, 10}, {10, 10} },  -- ergibt ein Quadrat aus zwei Dreiecken
 }
-```
 
-### rendering.draw_light
+-- Sprite (hier gibt es render_layer)
+local icon = rendering.draw_sprite{
+  surface = surface, target = {10, 10}, sprite = "item/iron-plate",
+  x_scale = 1, y_scale = 1, render_layer = "entity-info-icon",
+}
 
-Draw a light effect at a position.
-
-```lua
+-- Licht
 local light = rendering.draw_light{
-  target = {x = 10, y = 10},
-  sprite = "utility/light_medium",     -- Light sprite
-  intensity = 1.0,                     -- Light brightness
-  color = {r = 1, g = 0.8, b = 0.2},  -- Light color
-  size = 15,                           -- Light radius
-  surface = game.surfaces["nauvis"],
-  time_to_live = 1200,
-  tag = "area_lights"
+  surface = surface, target = {10, 10}, sprite = "utility/light_medium",
+  scale = 2, intensity = 1, color = {r = 1, g = 0.8, b = 0.2},
 }
 ```
 
-## Render Object Management
+Sprite-Pfade: `"item/<name>"`, `"entity/<name>"`, `"fluid/<name>"`, `"virtual-signal/<name>"`,
+`"technology/<name>"`, `"utility/<name>"`.
+
+## Objekte verwalten
 
 ```lua
--- Get a render object by ID
-local obj = rendering.get(render_object_id)
-
--- Destroy a single render object
-rendering.destroy(render_object_id)
-
--- Destroy all render objects with a specific tag
-rendering.destroy_by_tag("my_mod_label")
-
--- Find all render objects matching criteria
-local all_labels = rendering.find_all{
-  tag = "zone_labels",
-  surface = game.surfaces["nauvis"],
-  type = "text"  -- "sprite", "text", "line", "rectangle", "circle", "polygon", "light"
+-- Merken (LuaRenderObject darf in storage stehen)
+storage.markers = storage.markers or {}
+storage.markers[entity.unit_number] = rendering.draw_circle{
+  surface = entity.surface, target = entity, radius = 3, color = {0, 1, 0}, filled = false,
 }
 
--- Iterate and update
-for _, obj in ipairs(all_labels) do
-  if obj.valid then
-    -- Update position, color, etc.
-    obj.color = {r = 0, g = 1, b = 0}
-  end
-end
-```
-
-## Render Layers
-
-Available layers (draw order, bottom to top):
-- `ground` — Below everything
-- `ground-corrected` — Ground with cliff correction
-- `remnants` — Entity remnants
-- `lower-object` — Below normal objects
-- `object` — Normal objects
-- `higher-object-above` — Above normal objects
-- `air-object` — Air-level objects
-- `air` — Highest layer
-- `entity-info-icon` — Special layer for info overlays
-
-## Performance Tips
-
-```lua
--- 1. Always set time_to_live to prevent memory leaks
-rendering.draw_text{
-  text = "temp label",
-  target = position,
-  surface = surface,
-  time_to_live = 300  -- Auto-cleanup after 5 seconds
-}
-
--- 2. Use tags for batch management
-rendering.draw_circle{
-  target = pos,
-  radius = 5,
-  color = {r = 1, g = 0, b = 0},
-  surface = surface,
-  tag = "my_mod_selection"  -- Use this for bulk cleanup
-}
-
--- Cleanup on mod disable
-script.on_event(defines.events.on_mod_disabled, function(event)
-  rendering.destroy_by_tag("my_mod_selection")
-end)
-
--- 3. Limit the number of active render objects
--- Keep a counter and cap at a reasonable number
-local MAX_RENDER_OBJECTS = 1000
-local render_count = #rendering.find_all{tag = "my_mod_objects"}
-if render_count > MAX_RENDER_OBJECTS then
-  rendering.destroy_by_tag("my_mod_objects")  -- Clear all and redraw
+-- Ändern
+local obj = storage.markers[unit]
+if obj and obj.valid then
+  obj.color = {r = 1, g = 0, b = 0}
+  obj.visible = false
 end
 
--- 4. Use entity targets instead of positions for automatic following
-rendering.draw_text{
-  text = "My Factory",
-  target = silo_entity,  -- Follows the entity automatically
-  surface = surface,
-  time_to_live = 600
-}
+-- Löschen
+if obj and obj.valid then obj.destroy() end
+storage.markers[unit] = nil
+
+-- Alles von dieser Mod löschen (z. B. beim Neuaufbau)
+rendering.clear(script.mod_name)
 ```
 
-## Common Visualization Patterns
+Über eine ID (z. B. aus einem Event oder einer anderen Mod): `rendering.get_object_by_id(id)`.
 
-### Entity Range Indicator
+## Render-Layer (Auswahl)
+
+Gültige Werte laut [RenderLayer](https://lua-api.factorio.com/latest/types/RenderLayer.html), u. a.:
+`"ground-patch"`, `"floor"`, `"lower-object"`, `"object"`, `"higher-object-under"`,
+`"higher-object-above"`, `"wires"`, `"entity-info-icon"`, `"entity-info-icon-above"`,
+`"air-object"`, `"air-entity-info-icon"`, `"light-effect"`, `"selection-box"`, `"arrow"`, `"cursor"`.
+
+## Leistung
+
+1. Für Kurzlebiges `time_to_live` setzen – dann muss nichts aufgeräumt werden.
+2. Für Dauerhaftes die Objekte in `storage` merken und gezielt `destroy()` aufrufen, statt jedes
+   Mal neu zu zeichnen.
+3. `target = entity` statt Position: folgt dem Entity ohne Script-Arbeit und verschwindet mit ihm.
+4. Nicht in jedem Tick zeichnen; bei Markierungen `on_nth_tick` oder Ereignisse nutzen.
+5. Anzahl begrenzen: eigene Zählung in `storage` führen.
+
+## Muster
+
+### Reichweite eines Roboports anzeigen
 ```lua
--- Draw the range circle of a roboport
-local roboport = surface.find_entity("roboport", {0, 0})
-if roboport then
-  local prototype = roboport.prototype
-  local radius = prototype.logistics_radius
-
-  rendering.draw_circle{
-    target = roboport,
-    radius = radius,
-    color = {r = 0, g = 1, b = 0, a = 0.3},
-    filled = true,
-    surface = roboport.surface,
-    time_to_live = 600
-  }
-
-  rendering.draw_circle{
-    target = roboport,
-    radius = radius,
-    color = {r = 0, g = 1, b = 0},
-    filled = false,
-    surface = roboport.surface,
-    time_to_live = 600
-  }
-end
-```
-
-### Selection Box Highlight
-```lua
--- Highlight a specific area
-local area = {{x1, y1}, {x2, y2}}
-
-rendering.draw_rectangle{
-  left_top = area[1],
-  right_bottom = area[2],
-  color = {r = 1, g = 1, b = 0, a = 0.2},
-  filled = true,
-  surface = surface,
-  time_to_live = 1800
-}
-
-rendering.draw_rectangle{
-  left_top = area[1],
-  right_bottom = area[2],
-  color = {r = 1, g = 1, b = 0},
-  filled = false,
-  surface = surface,
-  time_to_live = 1800
-}
-```
-
-### Arrow Indicator
-```lua
--- Draw an arrow from entity A to entity B
-local silo = surface.find_entity("rocket-silo", {0, 0})
-local pad = surface.find_entity("cargo-landing-pad", {50, 50})
-
-if silo and pad then
-  rendering.draw_line{
-    from = silo.position,
-    to = pad.position,
-    color = {r = 1, g = 0, b = 0},
-    width = 3,
-    surface = surface,
+local function show_range(roboport)
+  local radius = roboport.prototype.logistic_radius
+  return rendering.draw_circle{
+    surface = roboport.surface, target = roboport, radius = radius,
+    color = {r = 0, g = 1, b = 0, a = 0.15}, filled = true, draw_on_ground = true,
     time_to_live = 600,
-    tag = "route_indicator"
-  }
-
-  rendering.draw_text{
-    text = "→ Rocket Route",
-    target = {
-      x = (silo.position.x + pad.position.x) / 2,
-      y = (silo.position.y + pad.position.y) / 2 - 2
-    },
-    surface = surface,
-    color = {r = 1, g = 0.5, b = 0},
-    scale = 1.5,
-    time_to_live = 600,
-    tag = "route_indicator"
   }
 end
 ```
 
-### Player Position Marker
+### Verbindung zwischen zwei Entities
 ```lua
--- Mark player's current position
-script.on_nth_tick(60, function(event)
-  for _, player in pairs(game.connected_players) do
-    if player.character and player.character.valid then
-      rendering.draw_circle{
-        target = player.position,
-        radius = 1,
-        color = {r = 0, g = 0, b = 1, a = 0.5},
-        filled = true,
-        surface = player.surface,
-        time_to_live = 120,
-        tag = "player_markers"
-      }
-    end
-  end
-end)
+local function connect(a, b, player_index)
+  return rendering.draw_line{
+    surface = a.surface, from = a, to = b,           -- folgt beiden Entities
+    color = {r = 1, g = 0.5, b = 0}, width = 3,
+    players = {player_index}, time_to_live = 600,
+  }
+end
 ```

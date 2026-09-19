@@ -143,13 +143,13 @@ script.set_event_filter(defines.events.on_built_entity, {
 
 ```lua
 -- `storage` is a special table that persists across saves
--- Anything stored must be serializable (no Lua objects!)
+-- Allowed: basic data, tables and references to LuaObjects (check .valid); no functions
 
 script.on_init(function()
   storage.data = {
     counters = {},
     player_prefs = {},
-    tracked_entities = {},  -- store entity.unit_number, not the entity object!
+    tracked_entities = {},  -- [unit_number] = entity (LuaObject references are allowed; check .valid)
   }
 end)
 
@@ -173,9 +173,11 @@ script.register_metatable("my_entity_tracker", {
   }
 })
 
--- Usage
-local tracker = {entity = some_lua_entity}
-setmetatable(tracker, script.get_metatable("my_entity_tracker"))
+-- Usage: dieselbe Tabelle als Metatable setzen, die registriert wurde (ein script.get_metatable
+-- gibt es nicht). Nach dem Laden hängt Factorio die registrierte Metatable automatisch wieder an.
+local tracker_mt = { __index = { --[[ Methoden wie oben ]] } }
+script.register_metatable("my_entity_tracker", tracker_mt)
+local tracker = setmetatable({entity = some_lua_entity}, tracker_mt)
 ```
 
 ### Notification Queues (2.1+)
@@ -212,7 +214,7 @@ end
 -- Player properties
 player.name            -- string
 player.index           -- number
-player.online          -- boolean
+player.connected       -- boolean (es gibt kein player.online)
 player.force           -- LuaForce
 player.surface         -- LuaSurface (where their character is)
 player.position        -- {x, y}
@@ -221,7 +223,7 @@ player.get_main_inventory()  -- LuaInventory
 player.cursor_stack    -- LuaItemStack (item in hand)
 
 -- 2.1 additions (see LuaPlayer section below for details)
-player.toggle_menu_leaves_remote_view  -- read/write (2.1.9+)
+player.toggle_menu_leaves_remote_view  -- read-only (2.1.9+; Spieler-Einstellung)
 player.get_pins()      -- returns array of LuaPin (2.1.10+)
 player.clear_pins()    -- clears all pins (2.1.10+)
 player.add_pin({...})  -- now returns LuaPin (2.1.10+)
@@ -340,21 +342,20 @@ local nearby = entity.surface.find_entities_filtered({
 ```lua
 game.tick              -- Current game tick (60 ticks = 1 second at normal speed)
 game.speed             -- Current game speed multiplier
-game.ticks_per_second  -- Usually 60
-game.paused            -- Is the game paused?
+game.tick_paused       -- Is the tick paused? (60 ticks = 1 s at speed 1; there is no ticks_per_second)
 ```
 
 ### Game Utility Methods (2.1+)
 
 ```lua
 -- Delete blueprint library (2.1+)
-game.delete_blueprint_library()
+game.delete_blueprint_library(player)
 
 -- Auto-save with replay parameter (2.1+)
-game.auto_save("mysave", {allow_in_replay = false})
+game.auto_save("mysave", false)  -- (name?, allow_in_replay?)
 
 -- Take technology screenshot (2.1+)
-game.take_technology_screenshot({...}, {allow_in_replay = false})
+game.take_technology_screenshot({ player = player, path = "tech.png" })
 ```
 
 ---
@@ -467,7 +468,7 @@ entity.health           -- number
 entity.max_health       -- number
 entity.quality          -- string (Space Age)
 entity.valid            -- boolean (always check before using a stored reference!)
-entity.unit_number      -- unique number (use for storage, not the entity itself)
+entity.unit_number      -- unique number (good table key; the entity itself may be stored too)
 
 -- 2.1 additions
 entity.flip             -- read (2.1.0+) — entity flip state
@@ -565,7 +566,7 @@ entity.get_recipe()  -- LuaRecipePrototype or nil
 entity.set_recipe("my-recipe")  -- for machines with recipe support
 
 -- Circuit connections
-entity.get_circuit_network(defines.wire_type.red, 1)  -- wire type + connector ID
+entity.get_circuit_network(defines.wire_connector_id.circuit_red)  -- 2.x: nur die Wire-Connector-ID
 
 -- Control behavior (2.1+)
 local behavior = entity.get_control_behavior()
@@ -680,7 +681,7 @@ local player = game.get_player(1)
 -- Standard properties
 player.name
 player.index
-player.online
+player.connected       -- (es gibt kein player.online)
 player.force           -- LuaForce
 player.surface         -- LuaSurface
 player.position        -- {x, y}
@@ -693,7 +694,7 @@ player.physical_vehicle          -- vehicle entity if in one
 player.physical_position         -- position in physical surface
 
 -- 2.1.9+ additions
-player.toggle_menu_leaves_remote_view  -- read/write: if true, Escape leaves remote view instead of opening menu
+player.toggle_menu_leaves_remote_view  -- read-only: if true, Escape leaves remote view instead of opening menu
 player.hide_locked_prototypes_in_factoriopedia  -- read/write: hide unresearched in Factoriopedia
 
 -- 2.1.10+ Pin system
@@ -965,7 +966,7 @@ All fluid interaction is now done directly through `LuaEntity`.
 - **`entity.neighbors` is removed!** Use specific properties: `fluidbox_neighbours`, `underground_belt_neighbour`, `wall_neighbours`, `cliff_neighbours`, or `neighbour_connectable_connections`.
 
 ### ⚠️ Programmable Speaker (2.1.10+)
-- **`Global` playback mode renamed to `Universe`!** Use `Universe` instead of `Global`.
+- `playback_mode` (in `entity.parameters`): `"local"`, `"surface"` oder `"global"` (API 2.1.19). Keine Umbenennung in „Universe“.
 
 ### ⚠️ Display Panel (2.1 breaking)
 - **`display_panel_text` now accepts `string` ONLY** — `LocalisedString` no longer works. Use `add_record()`, `set_record()`, `records` instead.
@@ -982,7 +983,7 @@ All fluid interaction is now done directly through `LuaEntity`.
 
 4. **Using `entity.neighbors`** — Removed. Use `entity.fluidbox_neighbours`, `entity.wall_neighbours`, etc.
 
-5. **Storing Lua objects in `storage`** — Only serializable data! Use `entity.unit_number` instead of entity references.
+5. **Storing functions in `storage`** — not allowed (error on save). LuaObject references are allowed; check `.valid` before use.
 
 6. **Writing to `storage` in `on_load()`** — Read-only! Only re-register event handlers or re-setup metatables.
 
@@ -990,7 +991,7 @@ All fluid interaction is now done directly through `LuaEntity`.
 
 8. **Setting `circuit_condition_satisfied`** — This is read-only. Use `entity.disabled_by_script` to control entity state based on circuit conditions.
 
-9. **Using `"Global"` for Programmable Speaker** — Renamed to `"Universe"` in 2.1.10.
+9. **Programmable Speaker playback mode** — values are lowercase: `"local"`, `"surface"`, `"global"`.
 
 10. **Using `display_panel_text` with LocalisedString** — Only plain `string` works in 2.1+. Use record-based API instead.
 

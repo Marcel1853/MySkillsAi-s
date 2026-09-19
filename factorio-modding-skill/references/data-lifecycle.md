@@ -156,7 +156,7 @@ This means:
 
 **What you do:**
 - Register event handlers with `script.on_event()`
-- Read/modify `storage` (serializable data only — NO Lua objects!)
+- Read/modify `storage` (basic data, tables, LuaObject references — no functions)
 - Interact with the game via `game` methods
 - Define custom console commands
 
@@ -166,10 +166,10 @@ This means:
 
 `storage` is a special table that persists across save/load cycles. It's serialized into the save file.
 
-**Rules:**
-1. Only store serializable data (numbers, strings, booleans, tables, arrays)
-2. **NEVER** store Lua objects (LuaEntity, LuaPlayer, LuaSurface, etc.)
-3. Store entity references by their `unit_number` instead
+**Rules** ([official](https://lua-api.factorio.com/latest/auxiliary/storage.html), verified 2.1.19):
+1. Allowed: nil, strings, numbers, booleans, tables and **references to LuaObjects** (LuaEntity, LuaPlayer, LuaSurface …)
+2. **Not allowed:** functions (error when saving). Metatables are only kept if registered with `script.register_metatable`
+3. Stored LuaObjects can become invalid (entity removed) → always check `.valid`; `unit_number` is a good table key
 4. Initialize in `on_init()`, read in `on_load()`, modify in event handlers
 
 ```lua
@@ -192,10 +192,14 @@ script.on_event(defines.events.on_built_entity, function(event)
   end
 end)
 
--- ❌ WRONG: storing Lua object directly
+-- ✅ ALSO CORRECT: storing the LuaObject reference itself (check .valid before use)
 script.on_init(function()
   storage.my_entity = game.surfaces["nauvis"].find_entity("assembling-machine-3", {0, 0})
-  -- This will cause an error! Lua objects are not serializable.
+end)
+
+-- ❌ WRONG: storing a function
+script.on_init(function()
+  storage.callback = function() end -- error when the game is saved
 end)
 ```
 
@@ -372,4 +376,4 @@ local effects = require("__core__.lualib.surface-render-parameter-effects")
 3. **Not checking `entity.valid`** — Stored entities can be destroyed. Always check before use.
 4. **Forgetting to add `?` to optional dependencies** — Use `"? space-age"` for optional, `"space-age"` for required.
 5. **Not handling `on_configuration_changed()`** — Mod updates on existing saves will break without migration code.
-6. **Storing Lua objects in `storage`** — Only store serializable data. Use `unit_number` for entity references.
+6. **Storing functions in `storage`** — not allowed (error on save). LuaObject references are fine; check `.valid`.

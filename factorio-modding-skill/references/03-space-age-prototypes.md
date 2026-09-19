@@ -531,11 +531,13 @@ data:extend({
 ### LuaSpacePlatform (Runtime)
 
 ```lua
--- Get all space platforms
-local platforms = game.get_space_platforms()
-for _, platform in ipairs(platforms) do
+-- Alle Plattformen einer Force (es gibt kein game.get_space_platforms):
+--   force.platforms (index → LuaSpacePlatform) oder force.get_space_platforms(location)
+local state_names = {}
+for name, value in pairs(defines.space_platform_state) do state_names[value] = name end
+for _, platform in pairs(game.forces["player"].platforms) do
   log("Platform: " .. platform.name)
-  log("  State: " .. platform.state)
+  log("  State: " .. state_names[platform.state])
   log("  Weight: " .. (platform.weight or 0))
   log("  Speed: " .. (platform.speed or 0))
   log("  Location: " .. (platform.space_location and platform.space_location.name or "in transit"))
@@ -549,28 +551,37 @@ for _, platform in ipairs(platforms) do
   end
   
   -- Platform inventory
-  local inv = platform.get_inventory(defines.inventory.cargo)
+  -- Plattform-Inventar = Inventar des Hubs
+  local hub = platform.hub
+  local inv = hub and hub.valid and hub.get_inventory(defines.inventory.hub_main)
   if inv then
     log("  Cargo items: " .. inv.get_item_count())
   end
 end
 
--- Get a specific platform by name
-local platform = game.get_space_platform("My Platform")
-if platform and platform.valid then
-  -- Control platform
-  platform.paused = true  -- Pause the platform
-  platform:can_leave_current_location()  -- Check if it can depart
+-- Eine bestimmte Plattform per Name suchen (keine eigene Such-Funktion in der API)
+local function find_platform(force, name)
+  for _, platform in pairs(force.platforms) do
+    if platform.valid and platform.name == name then return platform end
+  end
+end
+local platform = find_platform(game.forces["player"], "My Platform")
+if platform then
+  platform.paused = true                    -- anhalten
+  local ok = platform.can_leave_current_location() -- LuaObject-Methoden mit Punkt, nicht mit Doppelpunkt
 end
 ```
 
 ### Space Platform States
 
 ```lua
-defines.space_platform_state.at_location    -- Docked at a planet/station
-defines.space_platform_state.in_transit     -- Traveling between locations
-defines.space_platform_state.arriving       -- Arriving at destination
-defines.space_platform_state.departing      -- Departing from current location
+-- geprüft 2.1.19 – alle Werte in references/09-defines.md
+defines.space_platform_state.waiting_at_station     -- steht über einem Planeten / Ort
+defines.space_platform_state.on_the_path            -- unterwegs
+defines.space_platform_state.waiting_for_departure  -- wartet auf Abflug
+defines.space_platform_state.no_path
+defines.space_platform_state.no_schedule
+defines.space_platform_state.paused
 ```
 
 ## Cargo Pod System
@@ -598,24 +609,25 @@ end
 ### Cargo Pod Events
 
 ```lua
--- Cargo pod launched from platform
+-- Event-Daten laut API 2.1.19 (https://lua-api.factorio.com/latest/events.html)
+-- Cargo pod launched (cargo_pod, player_index?)
 script.on_event(defines.events.on_cargo_pod_started_ascending, function(event)
-  log("Cargo pod ascending from " .. event.surface_index)
+  local pod = event.cargo_pod
+  if pod and pod.valid then log("Cargo pod ascending from " .. pod.surface.name) end
 end)
 
--- Cargo pod arrived at surface
+-- Cargo pod landed (cargo_pod, launched_by_rocket, player_index?)
 script.on_event(defines.events.on_cargo_pod_finished_descending, function(event)
-  local pad = event.cargo_landing_pad
-  if pad and pad.valid then
-    log("Cargo landed at " .. pad.name)
-  end
+  local pod = event.cargo_pod
+  if pod and pod.valid then log("Cargo pod landed on " .. pod.surface.name) end
 end)
 
--- Cargo delivered
+-- Cargo delivered without landing pad (cargo_pod, spawned_container)
 script.on_event(defines.events.on_cargo_pod_delivered_cargo, function(event)
-  local items = event.items or {}
-  for _, item in ipairs(items) do
-    log("Delivered: " .. item.name .. " x" .. item.count .. " [" .. (item.quality or "normal") .. "]")
+  local container = event.spawned_container
+  if container and container.valid then
+    local inv = container.get_inventory(defines.inventory.chest)
+    log("Delivered " .. (inv and inv.get_item_count() or 0) .. " items on " .. container.surface.name)
   end
 end)
 ```
@@ -624,25 +636,26 @@ end)
 
 | Event | Description | Key Fields |
 |-------|-------------|------------|
-| `on_space_platform_changed_state` | Platform state changed | `space_platform`, `old_state`, `new_state` |
-| `on_cargo_pod_started_ascending` | Cargo pod launched | `surface_index` |
-| `on_cargo_pod_finished_descending` | Cargo pod landed | `cargo_landing_pad` |
-| `on_cargo_pod_delivered_cargo` | Cargo delivered | `items`, `cargo_landing_pad` |
-| `on_cargo_pod_finished_ascending` | Cargo pod departed | `surface_index` |
+| `on_space_platform_changed_state` | Platform state changed | `platform`, `old_state` (new state = `platform.state`) |
+| `on_cargo_pod_started_ascending` | Cargo pod launched | `cargo_pod`, `player_index?` |
+| `on_cargo_pod_finished_descending` | Cargo pod landed | `cargo_pod`, `launched_by_rocket`, `player_index?` |
+| `on_cargo_pod_delivered_cargo` | Cargo delivered (no landing pad) | `cargo_pod`, `spawned_container` |
+| `on_cargo_pod_finished_ascending` | Cargo pod departed | `cargo_pod`, `launched_by_rocket`, `player_index?` |
+
+(Felder geprüft gegen API 2.1.19.)
 
 ## Space-Age Defines
 
 ```lua
--- Space platform states
-defines.space_platform_state.at_location
-defines.space_platform_state.in_transit
-defines.space_platform_state.arriving
-defines.space_platform_state.departing
+-- Space platform states (geprüft 2.1.19)
+defines.space_platform_state.waiting_at_station
+defines.space_platform_state.on_the_path
+defines.space_platform_state.waiting_for_departure
+defines.space_platform_state.no_path
 
--- Rocket silo status
-defines.rocket_silo_status.launching_rocket
-defines.rocket_silo_status.launching_satellite
-defines.rocket_silo_status.reloading_rocket_parts
-defines.rocket_silo_status.ready_to_launch
-defines.rocket_silo_status.no_rocket
+-- Rocket silo status (Auswahl; alle Werte in references/09-defines.md)
+defines.rocket_silo_status.building_rocket
+defines.rocket_silo_status.rocket_ready
+defines.rocket_silo_status.launch_started
+defines.rocket_silo_status.rocket_flying
 ```

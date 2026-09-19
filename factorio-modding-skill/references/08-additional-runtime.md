@@ -66,7 +66,7 @@ force.evolution_factor_by_time      -- contribution from time
 force.evolution_factor_by_spawner_kills -- contribution from killing spawners
 
 -- Flow statistics (2.1+ extended)
-local flow = force.get_item_production_statistics(defines.flow_precision_index.one_game)
+local flow = force.get_item_production_statistics(surface)  -- je Oberfläche; Genauigkeit erst in flow.get_flow_count{…, precision_index = defines.flow_precision_index.one_hour}
 flow.get_current_input_sample()       -- get current tick input sample (2.1+)
 flow.set_current_input_sample(value)  -- set current tick input sample (2.1+)
 flow.get_current_output_sample()      -- get current tick output sample (2.1+)
@@ -224,10 +224,10 @@ end
 ```lua
 local entity = surface.find_entity("constant-combinator", {0, 0})
 if entity then
-  local network = entity.get_circuit_network(defines.wire_type.red)
+  local network = entity.get_circuit_network(defines.wire_connector_id.circuit_red)
   if network then
-    for signal_id, data in pairs(network.signals) do
-      game.print(signal_id.type .. " " .. signal_id.name .. ": " .. data.count)
+    for _, s in pairs(network.signals or {}) do -- { signal = SignalID, count = n }
+      game.print((s.signal.type or "item") .. " " .. s.signal.name .. ": " .. s.count)
     end
   end
 end
@@ -387,8 +387,8 @@ local persistent = rendering.draw_line({
 -- Destroy persistent rendering
 persistent.destroy()
 
--- Get all rendering objects
-local all_objects = rendering.get_objects()
+-- Get all rendering objects of this mod
+local all_objects = rendering.get_all_objects(script.mod_name)
 ```
 
 ## LuaChunkIterator — Iterate Chunks

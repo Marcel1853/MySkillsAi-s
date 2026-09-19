@@ -447,15 +447,15 @@ script.on_event(defines.events.on_gui_selection_state_changed, function(event)
 end)
 
 -- Dropdown selection changed
-script.on_event(defines.events.onon_gui_selection_state_changed, function(event)
+script.on_event(defines.events.on_gui_selection_state_changed, function(event)
   if event.element.type == "drop-down" then
     game.print("Selected: " .. event.element.get_item(event.element.selected_index))
   end
 end)
 
--- Tab changed
-script.on_event(defines.events.on_gui_switched_tab, function(event)
-  game.print("Switched to tab: " .. event.element.selected_tab.caption)
+-- Tab changed (on_gui_selected_tab_changed; event.element = the tabbed-pane)
+script.on_event(defines.events.on_gui_selected_tab_changed, function(event)
+  game.print("Selected tab index: " .. event.element.selected_tab_index)
 end)
 
 -- Location changed (camera, scroll-pane)
@@ -494,7 +494,7 @@ end)
 
 ## GUI Styles
 
-Factorio provides many built-in styles. Access them via `game.player.gui.styles`:
+Factorio provides many built-in styles (set them with `style = "…"` when adding elements). Note: `game.player` only exists in console commands – in mod code use `game.get_player(event.player_index)`:
 
 ```lua
 -- Common styles:

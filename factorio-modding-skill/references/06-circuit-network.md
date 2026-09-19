@@ -4,12 +4,24 @@
 
 Factorio's circuit network connects entities via wires, allowing mods to read and write signals, and control behavior.
 
-## Wire Types
+## Wire Connectors (2.x)
+
+`get_circuit_network` nimmt **eine** `defines.wire_connector_id` (geprüft 2.1.19):
 
 ```lua
-defines.wire_type.red    -- red wire
-defines.wire_type.green  -- green wire
+defines.wire_connector_id.circuit_red         -- normale Entities (Kisten, Haltestellen, Konstanten-Combinator …)
+defines.wire_connector_id.circuit_green
+defines.wire_connector_id.combinator_input_red   -- Eingang von Rechen-/Entscheider-/Wähler-Combinator
+defines.wire_connector_id.combinator_input_green
+defines.wire_connector_id.combinator_output_red  -- Ausgang
+defines.wire_connector_id.combinator_output_green
 ```
+
+`defines.wire_type` (red/green/copper) gibt es weiter, z. B. als Eigenschaft `network.wire_type` –
+aber nicht mehr als Parameter von `get_circuit_network`.
+
+Kabel verbinden: `a.get_wire_connector(id_a, true).connect_to(b.get_wire_connector(id_b, true))`
+(liefert `false`, wenn zu weit – Standardreichweite 9 Felder).
 
 ## Reading Circuit Networks
 
@@ -18,13 +30,14 @@ defines.wire_type.green  -- green wire
 ```lua
 local entity = game.surfaces["nauvis"].find_entity("constant-combinator", {10, 10})
 if entity then
-  local network = entity.get_circuit_network(defines.wire_type.red, 1)
-  -- connector_id is 1 for main, 2 for secondary
+  local network = entity.get_circuit_network(defines.wire_connector_id.circuit_red)
   if network then
-    for signal_id, count in pairs(network.signals) do
-      local signal = signal_id.signal
-      game.print(signal.type .. " " .. signal.name .. ": " .. count)
+    -- signals: array von { signal = SignalID, count = n } (nil, wenn leer)
+    for _, s in pairs(network.signals or {}) do
+      game.print((s.signal.type or "item") .. " " .. s.signal.name .. ": " .. s.count)
     end
+    -- einzelnes Signal:
+    local a = network.get_signal({ type = "virtual", name = "signal-A" })
   end
 end
 ```
@@ -32,9 +45,13 @@ end
 ### LuaCircuitNetwork Properties
 
 ```lua
-network.signals     -- dictionary: {signal={signal.type, signal.name}, count=10}
-network.color       -- {r, g, b} wire color
-network.connected_entities  -- array of entity.unit_number
+network.signals                -- array[Signal]? : { {signal = SignalID, count = 10}, … } (Stand letzter Tick)
+network.get_signal(signal_id)  -- Wert eines Signals (0, wenn nicht da)
+network.network_id             -- ID des Netzes
+network.wire_type              -- defines.wire_type
+network.wire_connector_id      -- defines.wire_connector_id, über den das Netz geholt wurde
+network.connected_circuit_count
+network.entity                 -- Entity, von dem das Netz geholt wurde
 ```
 
 ### Signal Types
@@ -172,7 +189,7 @@ end)
 -- Count total signals on a network
 local function count_signals(network)
   local total = 0
-  for _, signal_data in pairs(network.signals) do
+  for _, signal_data in pairs(network.signals or {}) do
     total = total + signal_data.count
   end
   return total
@@ -181,7 +198,7 @@ end
 -- Example usage
 local entity = game.surfaces["nauvis"].find_entity("constant-combinator", {0, 0})
 if entity then
-  local network = entity.get_circuit_network(defines.wire_type.red)
+  local network = entity.get_circuit_network(defines.wire_connector_id.circuit_red)
   if network then
     local total = count_signals(network)
     game.print("Total signal count: " .. total)
@@ -210,12 +227,9 @@ Conditions use the `CircuitCondition` structure:
 
 ```lua
 local behavior = accumulator.get_control_behavior()
-behavior.circuit_mode_of_operation = defines.control_behavior.accumulator.read  -- read or charge/discharge
-behavior.circuit_condition = {
-  first_signal = {type = "virtual", name = "signal-A"},
-  comparator = ">",
-  constant = 5000,
-}
+-- LuaAccumulatorControlBehavior (geprüft 2.1.19): Ladestand als Signal ausgeben
+behavior.read_charge = true
+behavior.output_signal = {type = "virtual", name = "signal-A"}
 ```
 
 ## LuaLogisticContainerControlBehavior
@@ -268,7 +282,7 @@ behavior.circuit_target = {
 ```
 
 ### ⚠️ Factorio 2.1 Logistic Control Behavior Update
-In Factorio 2.1, **`circuit_exclusive_mode_of_operation` and `defines.control_behavior.logistic_container.exclusive_mode` have been removed!**
+In Factorio 2.x, **`circuit_exclusive_mode_of_operation` and the old logistic-container exclusive mode no longer exist.**
 Requester and buffer chests can now set requests and read contents at the same time.
 Use `set_requests` and `read_contents` together directly:
 ```lua

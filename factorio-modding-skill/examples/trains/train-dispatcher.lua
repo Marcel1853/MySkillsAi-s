@@ -53,14 +53,14 @@ end
 local function setup_train_route(train, route_name, station_names)
   local schedule = train.get_schedule()
   if not schedule then
-    game.print("Zug " .. train.id .. ": Kein Fahrplan verfuegbar.")
+    game.print("Zug " .. train.id .. ": Kein Fahrplan verfügbar.")
     return false
   end
 
-  -- Bestehende Eintraege loeschen
+  -- Bestehende Einträge löschen
   schedule.clear_records()
 
-  -- Jede Station als Eintrag hinzufuegen
+  -- Jede Station als Eintrag hinzufügen
   for i, station_name in ipairs(station_names) do
     local is_last = (i == #station_names)
     schedule.add_record({
@@ -77,13 +77,13 @@ local function setup_train_route(train, route_name, station_names)
     })
   end
 
-  -- Gruppe zuweisen — alle Zuege in derselben Gruppe teilen sich den Fahrplan
+  -- Gruppe zuweisen — alle Züge in derselben Gruppe teilen sich den Fahrplan
   schedule.group = route_name
 
   -- Auf Automatikmodus stellen
   train.manual_mode = false
 
-  -- Registrierung fuer Tracking
+  -- Registrierung für Tracking
   storage.train_registry[train.id] = {
     group = route_name,
     route = station_names,
@@ -97,7 +97,7 @@ end
 
 -- ===== SCHEDULE INTERRUPTS =====
 
--- Haeufige Interrupts zu einem Fahrplan hinzufuegen
+-- Häufige Interrupts zu einem Fahrplan hinzufügen
 local function add_interrupts(schedule, train_id)
   if not schedule then return end
 
@@ -106,11 +106,12 @@ local function add_interrupts(schedule, train_id)
     name = "Nachtanken",
     conditions = {
       {
-        type = "fuel",
+        -- Brennstoff in irgendeiner Lok unter der Grenze (WaitConditionType, geprüft 2.1.19)
+        type = "fuel_item_count_any",
         compare_type = "and",
         condition = {
           first_signal = { type = "item", name = "solid-fuel" },
-          comparator = defines.comparator.less,
+          comparator = "<", -- ComparatorString; ein defines.comparator gibt es nicht
           constant = storage.config.fuel_threshold,
         },
       },
@@ -121,7 +122,7 @@ local function add_interrupts(schedule, train_id)
         temporary = true,
         allows_unloading = false,
         wait_conditions = {
-          { type = "fuel", compare_type = "and" },  -- Warten bis voll
+          { type = "fuel_full", compare_type = "and" },  -- Warten bis voll
         },
       },
     },
@@ -136,7 +137,7 @@ local function add_interrupts(schedule, train_id)
         compare_type = "and",
         condition = {
           first_signal = { type = "virtual", name = "signal-red" },
-          comparator = defines.comparator.greater,
+          comparator = ">",
           constant = 0,
         },
       },
@@ -152,7 +153,7 @@ local function add_interrupts(schedule, train_id)
             compare_type = "and",
             condition = {
               first_signal = { type = "virtual", name = "signal-red" },
-              comparator = defines.comparator.equal,
+              comparator = "=",
               constant = 0,
             },
           },
@@ -199,24 +200,24 @@ end)
 script.on_event(defines.events.on_train_changed_state, function(event)
   local train = event.train
   local old_state = event.old_state
-  local new_state = event.new_state
+  local new_state = train.state -- das Event liefert nur old_state
   local registry = storage.train_registry[train.id]
 
   if registry then
     registry.last_active_tick = game.tick
   end
 
-  -- Problemzustaende behandeln
+  -- Problemzustände behandeln
   if new_state == defines.train_state.no_path then
     if storage.config.alert_on_stuck then
-      game.print("Zug " .. train.id .. " hat keine Route! Gleise pruefen.")
+      game.print("Zug " .. train.id .. " hat keine Route! Gleise prüfen.")
       -- Use train.front_stock.force.add_custom_alert instead of per-player loop
       local front = train.front_stock
       if front and front.valid then
         front.force.add_custom_alert(
           front,
           { type = "item", name = "locomotive" },
-          { "", "Zug ", train.id, " hat den Weg verloren!" },
+          { "", "Zug ", tostring(train.id), " hat den Weg verloren!" }, ---@diagnostic disable-line: assign-type-mismatch
           true
         )
       end
@@ -259,7 +260,7 @@ end)
 
 -- ===== FESTGEFAHRENE ZUEGE ERKENNEN =====
 
--- Alle 60 Sekunden pruefen ob ein Zug feststeckt
+-- Alle 60 Sekunden prüfen ob ein Zug feststeckt
 script.on_nth_tick(36000, function(event)
   if not storage.config.alert_on_stuck then return end
 
@@ -277,25 +278,26 @@ end)
 
 -- ===== BAHNHOF SCHALTNETZ-INTEGRATION =====
 
--- Bahnhoefe ueber Schaltsignale steuern
+-- Bahnhöfe über Schaltsignale steuern
 script.on_nth_tick(600, function(event)
   for _, surface in pairs(game.surfaces) do
     local stops = surface.find_entities_filtered({ type = "train-stop" })
     for _, stop in ipairs(stops) do
       local behavior = stop.get_control_behavior()
       if behavior then
-        -- Schaltsignale aktivieren
-        behavior.read_train_stops = true
-        behavior.read_trains_count = true
-        behavior.read_train_contents = true
+        -- Schaltsignale aktivieren (LuaTrainStopControlBehavior, geprüft 2.1.19)
+        behavior.read_from_train = true      -- Inhalt des haltenden Zugs ausgeben
+        behavior.read_stopped_train = true   -- ID des haltenden Zugs ausgeben
+        behavior.read_trains_count = true    -- Anzahl Züge auf dem Weg ausgeben
 
-        -- Dynamisches Zuglimit via Schaltsignal
-        local network = stop.get_circuit_network(defines.wire_type.green)
+        -- Dynamisches Zuglimit per Schaltsignal: entweder die Haltestelle selbst lesen lassen …
+        -- behavior.set_trains_limit = true
+        -- behavior.trains_limit_signal = { type = "virtual", name = "signal-L" }
+        -- … oder per Script aus einem Signal setzen:
+        local network = stop.get_circuit_network(defines.wire_connector_id.circuit_green)
         if network then
-          local limit_signal = network.signals[{ type = "virtual", name = "signal-A" }]
-          if limit_signal and limit_signal.count > 0 then
-            behavior.set_train_limit(limit_signal.count)
-          end
+          local limit = network.get_signal({ type = "virtual", name = "signal-A" })
+          if limit > 0 then stop.trains_limit = limit end
         end
       end
     end
@@ -304,24 +306,24 @@ end)
 
 -- ===== AUTO-VERLADUNG =====
 
--- Zuege automatisch beladen wenn sie am Bahnhof warten
+-- Züge automatisch beladen wenn sie am Bahnhof warten
 local function get_train_contents(train)
   return train.get_contents()
 end
 
--- Alle 10 Sekunden pruefen
+-- Alle 10 Sekunden prüfen
 script.on_nth_tick(600, function(event)
   if not storage.config.auto_dispatch then return end
 
   for _, surface in pairs(game.surfaces) do
     local trains = surface.get_trains()
     for _, train in pairs(trains) do
-      -- Pruefen ob Zug am Bahnhof wartet
+      -- Prüfen ob Zug am Bahnhof wartet
       if train.state == defines.train_state.wait_station then
         local contents = train.get_contents()
         -- Wenn Zug leer und an Ladestation, bereit zum Abfahren
         if #contents == 0 then
-          -- Hier koennte Beladungslogik stehen
+          -- Hier könnte Beladungslogik stehen
         end
       end
     end
@@ -330,11 +332,11 @@ end)
 
 -- ===== KONSOLENBEFEHLE =====
 
-commands.add_command("zug-liste", "Alle registrierten Zuege auflisten", function(event)
+commands.add_command("zug-liste", "Alle registrierten Züge auflisten", function(event)
   local player = game.get_player(event.player_index)
   if not player then return end
 
-  player.print("=== Registrierte Zuege ===")
+  player.print("=== Registrierte Züge ===")
   for train_id, registry in pairs(storage.train_registry) do
     local status = registry.stuck and "FESTGEFAHREN" or "OK"
     player.print("Zug " .. train_id .. " [" .. registry.group .. "] " .. status)
@@ -342,13 +344,13 @@ commands.add_command("zug-liste", "Alle registrierten Zuege auflisten", function
   end
 end)
 
-commands.add_command("zug-bahnhoefe", "Alle indexierten Bahnhoefe auflisten", function(event)
+commands.add_command("zug-bahnhoefe", "Alle indexierten Bahnhöfe auflisten", function(event)
   local player = game.get_player(event.player_index)
   if not player then return end
 
-  player.print("=== Indexierte Bahnhoefe ===")
+  player.print("=== Indexierte Bahnhöfe ===")
   for surface_name, stations in pairs(storage.station_index) do
-    player.print("Oberflaeche: " .. surface_name)
+    player.print("Oberfläche: " .. surface_name)
     for name, _ in pairs(stations) do
       player.print("  - " .. name)
     end
@@ -385,7 +387,7 @@ end)
 
 -- ===== BAHNHOEFE PERIODISCH NEU INDEXIEREN =====
 
--- Neue Bahnhoefe koennen gebaut werden; alle 5 Minuten neu indexieren
+-- Neue Bahnhöfe können gebaut werden; alle 5 Minuten neu indexieren
 script.on_nth_tick(18000, function(event)
   for _, surface in pairs(game.surfaces) do
     index_stations(surface)
