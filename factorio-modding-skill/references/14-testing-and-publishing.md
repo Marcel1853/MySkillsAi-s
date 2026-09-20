@@ -180,6 +180,17 @@ show_gui=…, show_entity_info=true, daytime=0, path="shots/01-name.jpg"}` aufru
 - `length` der Simulation ist für das Hauptmenü gedacht; Tipps-Szenen laufen ohne.
 - Szenen kurz halten: Greifarm-Bonus setzen (`force.bulk_inserter_capacity_bonus`), sonst dauert
   das Beladen länger, als jemand zuschaut.
+- **Blaupause in einer Szene bauen:** `surface.create_entities_from_blueprint_string` funktioniert
+  laut API **nur in Simulationen** – im Headless-Test baut es stillschweigend nichts (Rückgabe
+  `nil`, kein Fehler). Überall nutzbar ist der Weg über einen Blaupausen-Gegenstand:
+  `game.create_inventory(1)` → `stack.set_stack{name="blueprint"}` → `stack.import_stack(text)` →
+  `stack.build_blueprint{surface=…, force=…, position=…, skip_fog_of_war=true}` (liefert Geister)
+  → je Geist `ghost.revive{raise_revive=true}` → `inv.destroy()`.
+- **Der Szenen-Code ist ein Text**: Variablen der Prototyp-Datei (z. B. die Blaupause) sind darin
+  **nicht** sichtbar. Sie müssen in den Text hineingeschrieben werden, z. B. als Zeile
+  `RING_BP = "…"` vor dem gemeinsamen Teil.
+- Blöcke im Szenen-Text beim Ersetzen an Anfang **und** Ende eindeutig abgrenzen – sonst bleiben
+  Reste stehen und die Mod lädt nicht mehr („`<eof>` expected“).
 
 ## Scripts in diesem Skill
 

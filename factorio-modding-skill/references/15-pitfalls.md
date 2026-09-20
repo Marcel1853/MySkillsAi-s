@@ -22,6 +22,8 @@
 | Zwei `script.on_nth_tick(n, …)` mit gleichem `n` | Der zweite Aufruf **ersetzt** den ersten Handler → Arbeit in einem Handler bündeln. |
 | Event-Felder raten (`event.new_state`, `event.player_index` bei `on_entity_died` …) | Felder je Event auf [events.html](https://lua-api.factorio.com/latest/events.html) nachsehen; neuer Zug-Zustand = `train.state`. |
 | `defines.comparator`, `defines.quality`, `defines.circuit_connector` | gibt es nicht – Liste in `references/09-defines.md` (aus der API erzeugt). |
+| `settings.global["fremde-einstellung"] = …` | Fehler „Settings can only be changed by the owning player or the mod that made the setting“ – fremde Map-Einstellungen darf eine Mod nicht setzen. |
+| Ordnername des Mods | muss `<name>` **oder** `<name>_<version>` sein, sonst „Directory name of mod … doesn't match“. Ohne Version im Ordnernamen entfällt das Umbenennen bei jeder neuen Version. |
 
 ## GUI
 
@@ -42,6 +44,7 @@
 | Wartebedingungen mischen | Liste wird als (A UND B …) ODER (C …) ausgewertet; `compare_type = "or"` beginnt eine neue Gruppe. „Ware = 0“ je Ware (`item_count`/`fluid_count`, `comparator = "="`, `constant = 0`) statt `empty`, wenn der Zug nacheinander mehrere Stationen anfährt. |
 | Pfadsuche | `game.train_manager.request_train_path{train, goals = {{train_stop = s}, …}, steps_limit}` liefert `found_path`, `goal_index`; mit `type = "all-goals-accessible"` → `amount_accessible`. Eine Suche über viele Ziele ist billiger als viele einzelne. |
 | Losschicken ist teuer | `go_to_station` löst die Pfadsuche des Spiels aus (Spitzen 5–15 ms bei großen Netzen) → pro Heartbeat nur wenige Züge losschicken. |
+| Gleise per Script setzen | Gleise liegen auf **ungeraden** Koordinaten. Baut man ein Gleisnetz relativ zu einem geraden Ursprung, rutschen Haltestellen, Greifarme und Wagen um ein Feld gegeneinander – Greifarme erreichen den Wagen dann nicht. |
 | Zug an Haltestelle platzieren | Lok-Mitte liegt 3 Felder hinter der Haltestelle, jeder weitere Wagen 7 Felder. Auf waagerechten Gleisen rücken Wagen beim Setzen um bis zu 2 Felder → jeden Wagen relativ zur **tatsächlichen** Position des vorherigen setzen, sonst koppeln sie nicht. |
 
 ## Entities, Kabel, Flüssigkeiten
