@@ -617,6 +617,61 @@ rail_end.connected_rail    -- LuaEntity (the next rail)
 
 ---
 
+## Building trains and loading bays by script (checked in-game, 2.1.19)
+
+```lua
+-- A train that must NOT couple to whatever stands nearby: build every carriage with
+-- auto_connect = false and couple them yourself.
+local parts = {}
+for i, name in ipairs({"locomotive", "cargo-wagon", "locomotive"}) do
+  local part = surface.create_entity({
+    name = name, position = {x, y + 7 * (i - 1)}, direction = defines.direction.north,
+    force = force, auto_connect = false,
+  })
+  if not part then return end                              -- no rail here (or an elevated rail above)
+  parts[i] = part
+  if i > 1 and not part.connect_rolling_stock(defines.rail_direction.front) then return end
+end
+local train = parts[1].train
+if #train.carriages ~= #parts then return end              -- safety net: something coupled anyway
+
+parts[1].insert({name = "coal", count = 200})
+local schedule = train.get_schedule()
+schedule.add_record({station = "Depot", wait_conditions = {{type = "inactivity", ticks = 300}}})
+schedule.go_to_station(1)
+train.manual_mode = false                                  -- a scripted train starts in manual mode
+```
+
+**Positions:** the front locomotive stops 3 tiles behind the stop, every further carriage 7 tiles
+behind the previous one. Take the rail from `stop.connected_rail` instead of computing it — the
+stop sits 2 tiles to the right of its rail, and computed points quickly end up on the track.
+
+**Cargo wagon filters** (useful to load only what a delivery asks for):
+
+```lua
+local inventory = wagon.get_inventory(defines.inventory.cargo_wagon)
+if inventory.supports_filters() and not inventory.is_filtered() then
+  inventory.sort_and_merge()
+  -- false when that slot is still occupied → try again later
+  inventory.set_filter(1, {name = "iron-plate", quality = "normal", comparator = "="})
+  inventory.set_bar(2)          -- everything from slot 2 on is blocked for machines
+end
+-- undo
+inventory.set_filter(1, nil)
+inventory.set_bar()
+```
+
+Inserters respect both the filters and the bar, so a plain inserter at a mixed chest loads only
+the filtered goods. Leave wagons alone where the player set filters (`is_filtered()`) or a bar
+(`get_bar() <= #inventory`).
+
+**Elevated rails (2.1):** signals belonging to an elevated track need
+`rail_layer = defines.rail_layer.elevated` in `create_entity`, otherwise they are placed on the
+ground layer and the whole elevated track becomes one block. Rolling stock cannot be placed at a
+position that lies under an elevated rail — `create_entity` simply returns `nil`.
+
+---
+
 ## Best Practices
 
 1. **Always use `LuaSchedule` API** — Don't assign `train.schedule = {}` directly, it overwrites interrupts

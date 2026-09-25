@@ -226,6 +226,17 @@ def generate_mod(mod_name, title, dependencies=None):
             "CLAUDE.md\n"
         )
 
+    # --- CLAUDE.md aus der Vorlage des Skills ---
+    vorlage = os.path.join(SCRIPT_DIR, "templates", "CLAUDE.md")
+    if os.path.exists(vorlage):
+        with open(vorlage, encoding="utf-8") as f:
+            text = f.read()
+        text = (text.replace("{{MOD_NAME}}", mod_name)
+                    .replace("{{TITLE}}", title)
+                    .replace("{{FACTORIO_VERSION}}", "2.1"))
+        with open(f"{mod_dir}/CLAUDE.md", "w", encoding="utf-8") as f:
+            f.write(text)
+
     # --- Summary ---
     print(f"Generated mod '{mod_name}' in directory: {mod_dir}/")
     print(f"  - info.json")
@@ -248,6 +259,7 @@ def generate_mod(mod_name, title, dependencies=None):
     print(f"  - tools/package.sh (Zip nach dist/, ohne Entwicklungsdateien)")
     print(f"  - .github/workflows/release.yml (Portal-Upload + GitHub-Release bei neuer Version)")
     print(f"  - .gitignore")
+    print(f"  - CLAUDE.md (Projektregeln aus der Vorlage – bitte anpassen)")
     print("Noch zu tun: thumbnail.png (144x144) anlegen; erste Version von Hand im Mod-Portal hochladen.")
 
 

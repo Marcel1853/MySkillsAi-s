@@ -1,18 +1,11 @@
 ---
-name: factorio-modding
+name: factorio-modding-skill
 description: >
-  Create, modify, and debug Factorio 2.1 mods including Space Age DLC content.
-  Use this skill whenever the user asks about Factorio modding, Lua scripting for Factorio,
-  creating prototypes (entities, items, recipes, planets, space locations, asteroids, quality),
-  working with the data lifecycle (settings → prototype → runtime stages), handling events,
-  building GUIs, circuit network integration, train scheduling with interrupts and groups,
-  Space Age features (space platforms, cargo pods, asteroid collection, planetary surfaces,
-  thrusters), rendering/visualization, or anything related to the Factorio Lua API
-  (https://lua-api.factorio.com/latest/). Also use when the user mentions "factorio mod",
-  "data.lua", "control.lua", "prototype", "LuaEntity", "LuaPlayer", "LuaSurface", "LuaGameScript",
-  "LuaBootstrap", "LuaTrain", "LuaSchedule", "defines.events", train stops, schedule interrupts,
-  or Space Age modding topics like planets, space platforms, asteroid spawning, quality tiers,
-  or surface properties.
+  Create, modify and debug Factorio 2.1 mods, including Space Age. Use for prototypes (entities,
+  items, recipes, planets, asteroids, quality), the data lifecycle (settings → prototype →
+  runtime), events, GUIs, circuit networks, trains and schedules, rendering, and anything on the
+  Factorio Lua API. Also on "factorio mod", "data.lua", "control.lua", "LuaEntity", "LuaSurface",
+  "defines.events".
 ---
 
 # Factorio 2.1 + Space Age Modding Skill
@@ -24,7 +17,7 @@ Covers the complete Factorio Lua API through organized reference files and pract
 > This skill's reference files are snapshots and may be outdated. **When in doubt about any method signature, property, or define, ALWAYS verify against the official live documentation:**
 > - **Runtime API:** [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/)
 > - **Prototype/Data-Stage:** [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/) (prototype definitions section)
-> - **Version this skill was last updated against:** Factorio 2.1.11 experimental (stable: 2.0.x); corrections, `14-testing-and-publishing.md` and `15-pitfalls.md` verified against **2.1.19** (Sept. 2026)
+> - **Version this skill was last updated against:** Factorio 2.1.11 experimental (stable: 2.0.x); corrections, `14-testing-and-publishing.md` and `15-pitfalls.md` verified against **2.1.20** (Sept. 2026)
 >
 > API features marked `2.1.x experimental` may not be available in the current stable release (2.0.x). Always check which version your users target.
 
@@ -111,6 +104,11 @@ When the user asks about Factorio modding:
 4. **Follow the Data Lifecycle** — understand which file runs when (see `references/data-lifecycle.md`)
 5. **⚠️ Verify against live docs** — If any API seems uncertain, check [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/) before using
 6. **Test headless** and lint before handing over (`scripts/headless-test.sh`, `scripts/lint.sh`); package with `scripts/package.sh`
+7. **Starting a new mod project?** Put a `CLAUDE.md` with the project rules into the mod folder —
+   take `scripts/templates/CLAUDE.md` as the base, then go through it **with the user** and adapt
+   it: their language for the locale, their performance limits, their release process. Delete what
+   does not apply. `scripts/generate_mod.py` already writes this file into a fresh skeleton.
+   An existing project without a `CLAUDE.md` is worth one short offer, not a surprise file.
 
 ## Navigation
 
@@ -155,8 +153,8 @@ When the user asks about Factorio modding:
 ### 🧪 Testing, Publishing & Pitfalls (from a real project, 2.1.19)
 | Reference | Description |
 |-----------|-------------|
-| [14-testing-and-publishing.md](references/14-testing-and-publishing.md) | Headless-Tests mit eigenem Datenordner, UPS messen (`--benchmark-verbose all`), Lint wie VS Code (FMTK), Packen, Name/Changelog/Thumbnail-Regeln, Mod-Portal (Kategorie, Tags, API, Upload), GitHub-Workflow + Release, Screenshots mit Grafik (sicher!), Tipps & Tricks mit Szenen |
-| [15-pitfalls.md](references/15-pitfalls.md) | **Geprüfte Stolperfallen:** storage/LuaObjects, `require`, Szenario-Reihenfolge, `-0`, GUI-Abstände, Schaltungs-Panel, Züge (temporäre Halte, Wegpunkte, Wartebedingungen), Greifarm-Richtung, Kabelreichweite, Pumpen/Tanks an Flüssigkeitswagen, Gleisgeometrie |
+| [14-testing-and-publishing.md](references/14-testing-and-publishing.md) | Headless-Tests mit eigenem Datenordner, UPS messen (`--benchmark-verbose all`), Lint wie VS Code (FMTK), Packen, Name/Changelog/Thumbnail-Regeln, Mod-Portal (Kategorie, Tags, API, Upload), GitHub-Workflow + Release, Screenshots mit Grafik (sicher!), Tipps & Tricks mit Szenen, Headless-Szenarien (server-settings, stdin), Fehlersuche im Log, Abhängigkeits-Präfixe, Portal-API (Beschreibung, Versionsliste hinkt) |
+| [15-pitfalls.md](references/15-pitfalls.md) | **Geprüfte Stolperfallen:** storage/LuaObjects, `require`, Szenario-Reihenfolge, `-0`, GUI-Abstände, Schaltungs-Panel, Züge (temporäre Halte, Wegpunkte, Wartebedingungen), Greifarm-Richtung, Kabelreichweite, Pumpen/Tanks an Flüssigkeitswagen, Gleisgeometrie, `fuel_categories` statt `fuel_category`, `game.train_manager.get_trains` |
 
 ### 🤖 AI Personas
 | Reference | Description |
@@ -249,7 +247,7 @@ Full locale examples and LocalisedString patterns: `references/13-locale-referen
 |--------|---------------------|---------------------|---------------|
 | Mod Dependency | `"dependencies": ["? space-age"]` | `"dependencies": ["+ space-age"]` (`+` is optional recommended, auto-enabled!) | 2.0 |
 | Recipe Category | `RecipePrototype::category = "crafting"` | `RecipePrototype::categories = {"crafting"}` (`category` and `additional_categories` removed) | 2.0 |
-| Fluid Interaction | `entity.fluidbox[1] = ...` (LuaFluidBox) | Direct entity methods: `entity.add_fluid()`, `entity.get_fluid_filter()`, etc. (`fluidbox` read removed!) | 2.0 |
+| Fluid Interaction | `entity.fluidbox[1] = ...` (LuaFluidBox) | Direct entity methods: `entity.add_fluid()`, `entity.get_fluid()`, `entity.get_fluid_contents()`, `entity.get_fluid_filter()`; pipe connections via `entity.get_fluid_box_pipe_connections(index)` and `entity.get_fluid_box_neighbours(index)` (`fluidbox` removed entirely — even `fluidbox.get_pipe_connections()`) | 2.0 |
 | Fluids Removal | `entity.remove_fluid()` | `entity.extract_fluid()` (old behavior renamed, new `remove_fluid` added with different parameters) | 2.0 |
 | Entity Active State | `entity.active = false` (writable) | `entity.disabled_by_script = true` (`active` write removed) | 2.0 |
 | Entity Minable State | `entity.minable = false` (writable) | `entity.minable_flag = false` (`minable` write removed) | 2.0 |

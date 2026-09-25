@@ -203,4 +203,40 @@ show_gui=…, show_entity_info=true, daytime=0, path="shots/01-name.jpg"}` aufru
 | `scripts/release.yml` | GitHub-Workflow: Portal-Upload bei neuer Version + GitHub-Release |
 | `scripts/templates/screenshot-mod/` | Hilfsmod für Bilder (mit Grafik), inkl. sicherem Start-/Stop-Script |
 | `scripts/generate_mod.py` | Mod-Gerüst inkl. `.gitignore`, `tools/package.sh`, Workflow |
+| `scripts/templates/CLAUDE.md` | Vorlage für die Projektregeln im Mod-Ordner (Quellen, Code, Leistung, Tests, Release) – anpassen, nicht einfach übernehmen |
 | `scripts/gen_defines_reference.py` | erzeugt `references/09-defines.md` neu aus der offiziellen API (bei neuen Factorio-Versionen ausführen) |
+
+## Headless-Szenarien und Fehlersuche im Log (im Spiel geprüft, 2.1)
+
+- `--server-settings` braucht mehr als `name`: ohne den Schlüssel `visibility` bricht der Start mit
+  „Key "visibility" not found in property tree at ROOT“ ab. Eine brauchbare Minimaldatei:
+  `{ "name": "test", "description": "", "tags": [], "max_players": 2,
+  "visibility": { "public": false, "lan": false }, "username": "", "password": "", "token": "",
+  "game_password": "", "require_user_verification": false, "auto_pause": false }`.
+- Konsolenbefehle über stdin (FIFO) werden verschluckt, wenn direkt danach EOF kommt: **nach** den
+  Befehlen ein paar Sekunden warten, dann `/quit` schicken. Ausgabe am besten über `log(…)`, das
+  landet im Serverlog.
+- **Beim Grep nach Fehlern nicht nur auf Prototypen achten.** `Error.*prototype` übersieht
+  „Failed to load mod“, „Missing required dependency“ und Laufzeit-Ausnahmen. Besser:
+  `Error while (loading|running)|Failed to load mod|non-recoverable|doesn't contain key|Missing required dependency`.
+  Ein Lauf, der „sauber“ meldet, weil das Muster zu eng war, kostet mehr Zeit als jede lange Suche.
+- **Abhängigkeiten in `info.json`**: `!` unverträglich, `?` optional, `(?)` verstecktes optional,
+  `~` Pflicht ohne Ladereihenfolge, `+` **optional**, nur Ladereihenfolge. Wer `+` als Pflicht
+  behandelt, aktiviert beim Testen Mods, die gar nicht nötig sind.
+- **Die DLC liegen nicht in `~/.factorio/mods/`**, sondern im `data/`-Ordner des Spiels
+  (`space-age`, `quality`, `elevated-rails`, `recycler`). Wer Mod-Listen aus dem Mod-Ordner
+  zusammenbaut, verliert sie sonst still – die Folge sind falsche „Missing required dependency“.
+
+## Mod-Portal-API (im Betrieb geprüft)
+
+- Beschreibung setzen: `POST https://mods.factorio.com/api/v2/mods/edit_details` mit
+  `-F "mod=<name>" -F "description=<README.md"`. Braucht einen API-Schlüssel mit dem Recht
+  **„ModPortal: Edit Mods“** (das Upload-Recht genügt nicht). Grenze: 35 000 Zeichen.
+- **Die Versionsliste der API hinkt nach.** Kurz nach einem Upload meldet
+  `api/mods/<name>` die neue Version noch nicht. Ein Workflow, der daraus „Version fehlt“ schließt,
+  lädt erneut hoch und bekommt `InvalidModRelease: Release with that version already exists`.
+  Diesen Fall als „schon da“ behandeln, sonst bricht der Lauf ab und alle späteren Schritte
+  (Release-Branch, Beschreibung, GitHub-Release) fallen aus.
+- **Workflow-Dateien pushen**: Ein über `gh` erzeugtes HTTPS-Token hat meist keinen `workflow`-
+  Scope – der Push wird abgelehnt („refusing to allow an OAuth App to create or update workflow“).
+  Über SSH (`git push git@github.com:<user>/<repo>.git …`) geht es, wenn ein Schlüssel hinterlegt ist.

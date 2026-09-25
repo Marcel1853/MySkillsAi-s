@@ -68,21 +68,34 @@ Signals use a `SignalID` structure:
 
 ### Constant Combinator
 
+Since 2.0 the signals live in **logistic sections**, not directly on the control behavior:
+`behavior.get_section(n)` / `add_section()` → `LuaLogisticSection.set_slot(index, LogisticFilter)`.
+A `LogisticFilter` is `{value = SignalFilter, min = count}` — there is no `signal`/`count` pair.
+
 ```lua
 -- Set signals on a constant combinator
 local cc = entity  -- a constant-combinator entity
-local behavior = cc.get_control_behavior()
+local behavior = cc.get_or_create_control_behavior()
+local section = behavior.get_section(1) or behavior.add_section()
 
-if behavior then
-  -- Set section 1, slot 1
-  behavior.set_slot(1, {
-    signal = {type = "item", name = "iron-plate"},
-    count = 100,
-    index = 1,  -- slot index (1-20 for constant combinator)
+if section then
+  section.filters = {}  -- clear the whole section
+
+  -- Item, with quality
+  section.set_slot(1, {
+    value = {type = "item", name = "iron-plate", quality = "normal", comparator = "="},
+    min = 100,
   })
-  
-  -- Clear a slot
-  behavior.set_slot(2, nil)
+
+  -- Own virtual signal: with min ~= 0 the filter must be "trivial", i.e. quality AND
+  -- comparator set — otherwise: "Can't specify non zero request with non trivial item
+  -- filter condition".
+  section.set_slot(2, {
+    value = {type = "virtual", name = "signal-A", quality = "normal", comparator = "="},
+    min = -400,  -- negative values are allowed
+  })
+
+  section.clear_slot(3)
 end
 ```
 
