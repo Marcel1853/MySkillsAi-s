@@ -257,7 +257,7 @@ def generate_mod(mod_name, title, dependencies=None):
     print(f"  - migrations/")
     print(f"  - graphics/icons/, entity/, technology/")
     print(f"  - tools/package.sh (Zip nach dist/, ohne Entwicklungsdateien)")
-    print(f"  - .github/workflows/release.yml (Portal-Upload + GitHub-Release bei neuer Version)")
+    print(f"  - .github/workflows/release.yml (Portal-Upload, Beschreibung aus README.md, GitHub-Release)")
     print(f"  - .gitignore")
     print(f"  - CLAUDE.md (Projektregeln aus der Vorlage – bitte anpassen)")
     print("Noch zu tun: thumbnail.png (144x144) anlegen; erste Version von Hand im Mod-Portal hochladen.")

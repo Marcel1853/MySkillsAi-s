@@ -5,7 +5,8 @@
 #
 # Voraussetzungen:
 #   - tools/package.sh im Repo (Vorlage: scripts/package.sh des Skills)
-#   - Secret FACTORIO_MOD_PORTAL_TOKEN (API-Schlüssel auf factorio.com, Recht „ModPortal: Upload Mods“)
+#   - Secret FACTORIO_MOD_PORTAL_TOKEN (API-Schlüssel auf factorio.com mit den Rechten
+#     „ModPortal: Upload Mods“ und – für die Beschreibung – „ModPortal: Edit Mods“)
 #   - Die ERSTE Version von Hand im Portal hochladen: init_upload geht nur für bestehende Mods.
 name: Release
 
@@ -13,6 +14,12 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch: # von Hand starten, z. B. nur um die Beschreibung neu zu setzen
+    inputs:
+      beschreibung:
+        description: "Beschreibung aus README.md aufs Portal schreiben, auch ohne neue Version"
+        type: boolean
+        default: true
 
 permissions:
   contents: write # Release-Branch, Tag und GitHub-Release
@@ -83,7 +90,44 @@ jobs:
         run: |
           RESPONSE=$(curl -s -X POST -F "file=@$ZIP" "${{ steps.init.outputs.upload_url }}")
           echo "Antwort des Portals: $RESPONSE"
-          if echo "$RESPONSE" | jq -e '.error' >/dev/null 2>&1; then echo "Hochladen fehlgeschlagen."; exit 1; fi
+          if echo "$RESPONSE" | jq -e '.error' >/dev/null 2>&1; then
+            # Die Versionsliste des Portals hinkt kurz hinterher: ein Push gleich nach einem
+            # Release wollte sonst dieselbe Version noch einmal hochladen und brach ab.
+            if echo "$RESPONSE" | grep -q "InvalidModRelease"; then
+              echo "Diese Version liegt schon auf dem Portal – Hochladen übersprungen."
+            else
+              echo "Hochladen fehlgeschlagen."
+              exit 1
+            fi
+          fi
+
+      - name: Beschreibung auf dem Mod-Portal aktualisieren
+        continue-on-error: true # eine misslungene Beschreibung soll den Release nicht kippen
+        run: |
+          # Bei einer neuen Version immer; sonst nur, wenn dieser Push die README geändert hat
+          # oder der Lauf mit dem Schalter „beschreibung“ von Hand gestartet wurde.
+          if [ "${{ steps.check.outputs.found }}" != "false" ] \
+             && [ "${{ inputs.beschreibung }}" != "true" ] \
+             && ! git diff --name-only HEAD^ HEAD | grep -qx "README.md"; then
+            echo "Keine neue Version und README unverändert – Beschreibung bleibt, wie sie ist."
+            exit 0
+          fi
+          ZEICHEN=$(wc -m < README.md)
+          echo "README.md hat $ZEICHEN Zeichen (Portal erlaubt 35000)."
+          if [ "$ZEICHEN" -gt 35000 ]; then
+            echo "Zu lang – Beschreibung bleibt unverändert."
+            exit 1
+          fi
+          RESPONSE=$(curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.FACTORIO_MOD_PORTAL_TOKEN }}" \
+            -F "mod=${{ steps.info.outputs.name }}" \
+            -F "description=<README.md" \
+            https://mods.factorio.com/api/v2/mods/edit_details)
+          echo "Antwort des Portals: $RESPONSE"
+          if echo "$RESPONSE" | jq -e '.error' >/dev/null 2>&1; then
+            echo "Beschreibung nicht übernommen (braucht das Recht „ModPortal: Edit Mods“)."
+            exit 1
+          fi
 
       - name: GitHub-Release anlegen
         if: steps.gh.outputs.missing == 'true'

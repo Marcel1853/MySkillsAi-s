@@ -121,6 +121,10 @@ Heruntergeladene Mods in `mod-list.json` deaktiviert eintragen, wenn sie nur gel
 
 ## 6. GitHub Actions (Vorlage `scripts/release.yml`)
 
+Die Vorlage setzt beim Release auch die **Beschreibung** aus `README.md` über
+`api/v2/mods/edit_details` (Recht „ModPortal: Edit Mods“ nötig) und lässt sich mit
+`workflow_dispatch` von Hand starten, um nur die Beschreibung nachzuziehen.
+
 - Bei jedem Push auf `main`: Version aus info.json lesen; auf dem Portal prüfen, ob es sie gibt;
   nur dann bauen und hochladen. **Fehler vermeiden:** `exit 0` in einem Schritt beendet nur diesen
   Schritt – die folgenden laufen weiter. Stattdessen Ausgaben setzen und jeden folgenden Schritt
@@ -200,7 +204,7 @@ show_gui=…, show_entity_info=true, daytime=0, path="shots/01-name.jpg"}` aufru
 | `scripts/headless-test.sh` | Mod + Testmod headless starten, `[SELFTEST]`-Zeilen ausgeben |
 | `scripts/templates/selftest-mod/` | Testmod-Vorlage (`check()`, Phasen per `on_nth_tick`) |
 | `scripts/lint.sh` | `lua-language-server --check` mit den FMTK-Typen, nur Warnungen |
-| `scripts/release.yml` | GitHub-Workflow: Portal-Upload bei neuer Version + GitHub-Release |
+| `scripts/release.yml` | GitHub-Workflow: Portal-Upload bei neuer Version, Beschreibung aus README.md, GitHub-Release; von Hand startbar (`workflow_dispatch`) |
 | `scripts/templates/screenshot-mod/` | Hilfsmod für Bilder (mit Grafik), inkl. sicherem Start-/Stop-Script |
 | `scripts/generate_mod.py` | Mod-Gerüst inkl. `.gitignore`, `tools/package.sh`, Workflow |
 | `scripts/templates/CLAUDE.md` | Vorlage für die Projektregeln im Mod-Ordner (Quellen, Code, Leistung, Tests, Release) – anpassen, nicht einfach übernehmen |
