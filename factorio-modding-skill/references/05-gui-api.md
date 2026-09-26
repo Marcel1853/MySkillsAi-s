@@ -359,7 +359,18 @@ local camera = parent.add{
 }
 camera.style.minimal_width = 200
 camera.style.minimal_height = 200
+
+-- Einem Objekt folgen (checked in-game, 2.1): `entity` ist schreibbar, die Kamera fährt mit.
+-- Bei einer anderen Oberfläche zuerst surface_index setzen.
+camera.surface_index = train.front_stock.surface_index
+camera.entity = train.front_stock
 ```
+
+Schwebender Text über einem Objekt, das eine Kamera im Fenster zeigt: `rendering.draw_text{ …,
+target = { entity = e, offset = { 0, -3 } }, scale_with_zoom = false }`. Mit `scale_with_zoom =
+true` behält der Text seine Bildschirmgröße – in einer kleinen, weit herausgezoomten Kamera
+(zoom 0.35) verdeckt er dann das ganze Bild. Den Text später ändern: `obj.text = { "key", … }`,
+`obj.color = { … }` (LuaRenderObject, beides schreibbar).
 
 ### Choose Elem Button
 
@@ -421,6 +432,46 @@ parent.add{
 > **2.1+ Note:** The `"inventory"` GUI element type and `on_gui_inventory_action` event are new in Factorio 2.1. See [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/) for full property and event details.
 
 ---
+
+## Erklärfenster für Szenarien (Vorlage)
+
+Fertige Vorlage: **`scripts/templates/explain-panel/`** (Lua-Datei + Texte DE/EN). Ein Fenster, das
+Spielern in einem Szenario oder Tutorial erklärt, was gerade passiert:
+
+- Titelleiste zum Verschieben (`drag_target`) und Knopf zum Einklappen (gemerkt je Spieler)
+- Einleitung, Kopfzeile mit optionalem eigenem Knopf (z. B. Modus umschalten)
+- Schritte: erledigte mit Häkchen, der aktuelle hervorgehoben, kommende grau
+- Kamera, die einem Objekt folgt (meist einem Zug)
+- große Zeile (z. B. aktuelle Menge) und Notiz (z. B. Zähler)
+
+```lua
+local Explain = require("__my-mod__/scripts/lib/explain-panel")
+
+Explain.create(player, { name = "my_demo", title = { "my-demo.title" }, intro = { "my-demo.intro" },
+  button = { action = "mode", tooltip = { "my-demo.mode-tooltip" } } })
+
+-- einmal pro Sekunde (on_nth_tick(60)), nur Texte:
+Explain.update(player, "my_demo", {
+  headline = { "my-demo.round", round },
+  steps = { { "my-demo.step-1" }, { "my-demo.step-2" }, { "my-demo.step-3" } },
+  current = step,
+  follow = locomotive,
+  big = { "my-demo.cargo", amount },
+  note = { "my-demo.stats", trips },
+})
+
+script.on_event(defines.events.on_gui_click, function(event)
+  if Explain.on_click(event) == "mode" then --[[ eigenen Knopf behandeln ]] end
+end)
+```
+
+Wie es sich bewährt hat (Szenario „UTL-Nachladen“ in Unified Train Logistics): Ablauf als
+Zustandsautomat im Szenario (`storage.phase`, `storage.step`), das Fenster nur als Anzeige
+davon. Dazu schwebende Texte in der Welt über den beteiligten Objekten und Anzeigefelder mit
+Erklärung an den Stationen – dann sieht man, was passiert, statt es nur im Chat zu lesen.
+
+**Headless lässt sich das Fenster nicht testen** (kein Spieler, kein Fenster). Den Ablauf dahinter
+schon: Zustand per `/c log(serpent.line(storage.…))` über stdin abfragen.
 
 ## GUI Events
 

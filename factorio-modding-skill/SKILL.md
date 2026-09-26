@@ -135,7 +135,7 @@ When the user asks about Factorio modding:
 ### 🖥️ GUI & Circuit Network
 | Reference | Description |
 |-----------|-------------|
-| [05-gui-api.md](references/05-gui-api.md) | Custom GUIs: `LuaGuiElement`-Typen, `player.gui.screen`/`top`/`left`/`relative`, Event-Handler, Inventar-GUI-Elemente (2.1+), Choose-Elem-Button |
+| [05-gui-api.md](references/05-gui-api.md) | Custom GUIs: `LuaGuiElement`-Typen, `player.gui.screen`/`top`/`left`/`relative`, Event-Handler, Inventar-GUI-Elemente (2.1+), Choose-Elem-Button, Kamera folgt Objekt, **Erklärfenster für Szenarien** (Vorlage) |
 | [06-circuit-network.md](references/06-circuit-network.md) | Schaltungsnetz: Red/Green Wire, `LuaCircuitNetwork`, Combinator-Verhalten (Decider/Arithmetic/Constant/Selector), Signal-Typen, Entity-Steuerung via Circuit |
 
 ### 🚂 Trains & Rendering

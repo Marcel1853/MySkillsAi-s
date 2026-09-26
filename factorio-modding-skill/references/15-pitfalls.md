@@ -149,3 +149,7 @@
   darf eine **Subgruppe** nur dann mitnehmen, wenn dort ausschließlich eigene Sachen liegen
   (zählen: Items je Subgruppe gegen passende Items je Subgruppe). Nach dem Namen zu entscheiden
   („enthält train/rail“) reißt gemischte Zeilen fremder Mods aus ihrem Reiter.
+- **`vertical_spacing` an einem Frame stürzt ab** (2.1, im Spiel): „Expected Table or Flow or
+  VerticalFlow or TabbedPane style type but was Frame“. Zeilenabstand (und `horizontal_spacing`)
+  gibt es nur bei Flows und Tabellen. Muster: Frame → Flow (mit Abstand) → Inhalt. Headless fällt
+  das nicht auf, weil dort kein Fenster gebaut wird.
