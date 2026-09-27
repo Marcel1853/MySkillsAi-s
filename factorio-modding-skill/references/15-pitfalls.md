@@ -153,3 +153,20 @@
   VerticalFlow or TabbedPane style type but was Frame“. Zeilenabstand (und `horizontal_spacing`)
   gibt es nur bei Flows und Tabellen. Muster: Frame → Flow (mit Abstand) → Inhalt. Headless fällt
   das nicht auf, weil dort kein Fenster gebaut wird.
+
+## Gegner in Test-Szenarien auf anderen Planeten (2.1, geprüft)
+
+`surface.peaceful_mode = true` reicht auf Vulcanus nicht: Demolisher kommen aus ihren **Revieren**,
+und Chunks, die später entstehen, bringen neue Gegner mit. Sicher ist:
+
+```lua
+surface.peaceful_mode = true
+surface.no_enemies_mode = true                      -- keine neuen Gegner
+for _, e in pairs(surface.find_entities_filtered({ force = "enemy" })) do e.destroy() end
+local chunks = {}
+for c in surface.get_chunks() do chunks[#chunks + 1] = { x = c.x, y = c.y } end
+surface.clear_territory_for_chunks(chunks)          -- Demolisher-Reviere leeren
+-- und in on_chunk_generated dasselbe für event.area / event.position
+```
+
+Headless geprüft: danach 0 Gegner und 0 Reviere auf Nauvis, Vulcanus und Gleba.

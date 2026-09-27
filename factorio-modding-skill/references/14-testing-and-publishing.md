@@ -163,6 +163,23 @@ show_gui=…, show_entity_info=true, daytime=0, path="shots/01-name.jpg"}` aufru
   mittig angeordnete Fenster ab.
 - Labor-Boden (Karomuster) sieht auf Werbebildern schlecht aus → vorher `surface.set_tiles`
   mit Gras unter das Motiv.
+- **Steam-Start:** Das Steam-Factorio meldet „Steam requires game restart“ und beendet sich; Steam
+  startet es nach einer **Freigabe durch den Nutzer** (Startoptionen) neu. Der eigene Startbefehl
+  kehrt also sofort zurück. Vorher `factorio-current.log` im eigenen Datenordner löschen und dann
+  auf eine eigene Zeile wie `[SHOTS] fertig` warten – sonst liest man das Log des letzten Laufs.
+  Den Nutzer **vor jedem Start** warnen, dass er bestätigen muss.
+- **Sprache:** je Lauf `[general] locale=de` bzw. `locale=en` in die eigene `config.ini`; im laufenden
+  Spiel lässt sie sich nicht umstellen → je Sprache ein eigener Start.
+- **Fenster per Script öffnen:** Konsolenbefehle (`/mein-befehl`) kann ein Script nicht eingeben, und
+  Fenster-Code eines anderen Mods läuft nicht im Lua-Zustand des Hilfsmods. Der eigene Mod braucht
+  dafür **Remote-Funktionen** (z. B. `open_station`, `open_manager(tab, select)`); für Bilder einer
+  älteren Version notfalls in einer Wegwerf-Kopie (git worktree) nachrüsten.
+- **Lange Fenster:** zweites Bild mit `scroll_to_bottom()` auf allen Scroll-Bereichen.
+- **Teams/Admin-Ansichten:** Spieler per `player.force = …` in ein Team setzen, bevor Fenster
+  aufgenommen werden, die das eigene Team zeigen.
+- **Andere Planeten:** `player.teleport(pos, surface)`; ein Bild je Planet reicht meist.
+- **Stand einer älteren Version aufnehmen:** `git worktree add <ordner>/mods/<mod> main` – der
+  Arbeitsbranch bleibt unberührt, nichts muss vorher gepusht werden.
 
 ## 8. Tipps & Tricks mit Szenen
 
