@@ -223,6 +223,7 @@ show_gui=…, show_entity_info=true, daytime=0, path="shots/01-name.jpg"}` aufru
 | `scripts/lint.sh` | `lua-language-server --check` mit den FMTK-Typen, nur Warnungen |
 | `scripts/release.yml` | GitHub-Workflow: Portal-Upload bei neuer Version, Beschreibung aus README.md, GitHub-Release; von Hand startbar (`workflow_dispatch`) |
 | `scripts/templates/screenshot-mod/` | Hilfsmod für Bilder (mit Grafik), inkl. sicherem Start-/Stop-Script |
+| `scripts/templates/screenshot-mod/wiki-example/` | vollständiges Beispiel aus UTL: ganzer Wiki-Durchlauf je Szenario (Stationsfenster, Manager-Reiter, Welt, Teams, Planeten) samt Startscript |
 | `scripts/generate_mod.py` | Mod-Gerüst inkl. `.gitignore`, `tools/package.sh`, Workflow |
 | `scripts/templates/explain-panel/` | Erklärfenster für Szenarien: Schritte, Kamera am Objekt, Zähler, verschiebbar und einklappbar (nur Vanilla-Stile) |
 | `scripts/templates/CLAUDE.md` | Vorlage für die Projektregeln im Mod-Ordner (Quellen, Code, Leistung, Tests, Release) – anpassen, nicht einfach übernehmen |
