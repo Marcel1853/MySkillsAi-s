@@ -227,6 +227,13 @@ show_gui=…, show_entity_info=true, daytime=0, path="shots/01-name.jpg"}` aufru
 | `scripts/generate_mod.py` | Mod-Gerüst inkl. `.gitignore`, `tools/package.sh`, Workflow |
 | `scripts/templates/explain-panel/` | Erklärfenster für Szenarien: Schritte, Kamera am Objekt, Zähler, verschiebbar und einklappbar (nur Vanilla-Stile) |
 | `scripts/templates/CLAUDE.md` | Vorlage für die Projektregeln im Mod-Ordner (Quellen, Code, Leistung, Tests, Release) – anpassen, nicht einfach übernehmen |
+| `scripts/test-all.sh` | Lint je Ordner + alle Headless-Tests parallel (`TESTS="script:KENNUNG …"`), zählt nur diesen Lauf |
+| `scripts/compat-test.sh` | Headless-Test zusammen mit anderen Mods (nur verlinkt), DLC per `DISABLE` abschaltbar |
+| `scripts/load-test.sh` | Lasttest: Zeit je Tick, Schnitt/Median/99 %/Max, Ticks unter 60 UPS, Script-Spitzen |
+| `scripts/scenario-check.sh` | Szenario ohne Spieler als Server laden und auf Fehler prüfen |
+| `scripts/play-with-mods.sh` | Spiel mit eigenem Mod-Satz im Hintergrund starten (normale Mod-Liste bleibt) |
+| `scripts/blueprint2lua.py` | Blaupausen-Text → Lua-Tabelle für Szenarien/Testmods |
+| `scripts/templates/docs/` | Vorlagen `PLAN.md`, `IDEAS.md`, `DISCUSSION.md`, `plans/README.md` (siehe `16-project-workflow.md`) |
 | `scripts/templates/track-builder/` | Gleisleger: Gleise per `LuaRailEnd.get_rail_extensions` an beliebige offene Enden anbauen, Kurven, Signale, Haltestellen, Schleife schließen |
 | `scripts/templates/fake-remote-test/` | Anleitung: Schnittstelle einer fremden Mod headless nachbilden (z. B. SE ohne Spieler) |
 | `scripts/gen_defines_reference.py` | erzeugt `references/09-defines.md` neu aus der offiziellen API (bei neuen Factorio-Versionen ausführen) |

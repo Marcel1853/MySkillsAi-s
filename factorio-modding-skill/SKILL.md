@@ -158,6 +158,11 @@ When the user asks about Factorio modding:
 | [14-testing-and-publishing.md](references/14-testing-and-publishing.md) | Headless-Tests mit eigenem Datenordner, UPS messen (`--benchmark-verbose all`), Lint wie VS Code (FMTK), Packen, Name/Changelog/Thumbnail-Regeln, Mod-Portal (Kategorie, Tags, API, Upload), GitHub-Workflow + Release, Screenshots mit Grafik (sicher!), Tipps & Tricks mit Szenen, Headless-Szenarien (server-settings, stdin), Fehlersuche im Log, Abhängigkeits-Präfixe, Portal-API (Beschreibung, Versionsliste hinkt), **Testläufe zählen und bündeln** (parallel, `test-all.sh`), Szenario ohne Spieler prüfen, fremde Schnittstelle nachbilden |
 | [15-pitfalls.md](references/15-pitfalls.md) | **Geprüfte Stolperfallen:** storage/LuaObjects, `require`, Szenario-Reihenfolge, `-0`, GUI-Abstände, Schaltungs-Panel, Züge (temporäre Halte, Wegpunkte, Wartebedingungen), Greifarm-Richtung, Kabelreichweite, Pumpen/Tanks an Flüssigkeitswagen, Gleisgeometrie, `fuel_categories` statt `fuel_category`, `game.train_manager.get_trains`, **Gleise per `get_rail_extensions` anbauen**, Weg zwischen zwei Haltestellen (`starts`), `train_state` in 2.1 (kein `path_lost`), Abfahrt vs. `no_path`, Strommasten ohne Kupferkabel, **Space Exploration** (Aufzug, Schnittstelle, Headless-Grenzen) |
 
+### 🗂️ Project workflow (docs folder, plans, portal discussion, wiki)
+| Reference | Description |
+|-----------|-------------|
+| [16-project-workflow.md](references/16-project-workflow.md) | **Arbeitsweise über viele Sitzungen:** `docs/`-Ordner (PLAN, IDEAS, freigegebene Pläne mit Tabelle), Portal-Diskussion je Sitzung mit Datum mitschreiben, Wiki lokal pflegen und zum Release pushen, Blaupausen → Testwelten/Szenarien, Übungs- und Test-Szenarien, Werkzeug-Übersicht (`test-all.sh`, `compat-test.sh`, `load-test.sh`, `scenario-check.sh`, `play-with-mods.sh`, `blueprint2lua.py`). Vorlagen: `scripts/templates/docs/` |
+
 ### 🤖 AI Personas
 | Reference | Description |
 |-----------|-------------|
