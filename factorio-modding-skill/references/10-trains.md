@@ -607,12 +607,19 @@ end
 
 ## LuaRailEnd
 
-```lua
-local rail_end = train.get_rail_end(defines.rail_direction.front)
+A `LuaRailEnd` is one end of a rail, pointing in a direction of travel. Get one from a rail
+(`rail.get_rail_end(defines.rail_direction.front)`) or from a train
+(`train.get_rail_end(direction)`, `train.front_end`, `train.back_end` – pointing away from the train).
 
-rail_end.rail              -- LuaEntity (the rail at this end)
-rail_end.direction         -- defines.direction
-rail_end.connected_rail    -- LuaEntity (the next rail)
+```lua
+local rail_end = train.front_end
+rail_end.rail          -- LuaEntity: the rail this end belongs to
+rail_end.direction     -- defines.rail_direction (front/back of that rail)
+rail_end.location      -- RailLocation of the end
+rail_end.out_signal_location  -- where an outgoing signal would sit (right of travel)
+local walker = rail_end.make_copy()
+walker.move_natural()         -- one rail forward the way a train would go; false at a dead end
+walker.move_to_segment_end()  -- forward to the next segment boundary (switch, signal, stop)
 ```
 
 ---
@@ -669,6 +676,57 @@ the filtered goods. Leave wagons alone where the player set filters (`is_filtere
 `rail_layer = defines.rail_layer.elevated` in `create_entity`, otherwise they are placed on the
 ground layer and the whole elevated track becomes one block. Rolling stock cannot be placed at a
 position that lies under an elevated rail — `create_entity` simply returns `nil`.
+
+---
+
+## Signals, blocks and train lengths (checked in-game, 2.1.20)
+
+**Rules** (what players expect from a scripted network, and what keeps it free of deadlocks):
+
+1. **Chain signal in, rail signal out.** Every entry into a junction (switch, merge, crossing,
+   the merge of a station siding) gets a chain signal; every exit a normal rail signal. One entry
+   with two exits: a chain signal before the switch, a rail signal behind each exit.
+2. **A block behind a rail signal holds the longest train.** A train that stops at the next signal
+   must not stick out into the junction behind it. Rule of thumb: 7 tiles per carriage
+   (locomotive + 4 wagons ≈ 35). Only where the geometry does not allow it, shorter.
+3. **No signals right behind each other** (no carriage fits in between) – they only cost UPS.
+4. **Do not rebuild junctions that come from a player's blueprint** – protect them when thinning.
+
+**Train length** = `#train.carriages` ("parts": locomotives + wagons). A station that only takes
+one length (`min = max`) should also only have that many wagon bays, so players can see it; its
+waiting spots and the blocks leading to it are sized for that length.
+
+**Checking by script** – the rail segment API (`LuaEntity`, rails and signals):
+
+```lua
+-- A signal sits between two segments. get_connected_rails() returns either the rail in front of
+-- it (there the signal is the segment's exit) or the rail behind it (the segment's entrance).
+local function start_of(sig)
+  for _, rail in pairs(sig.get_connected_rails()) do
+    for _, d in ipairs({defines.rail_direction.front, defines.rail_direction.back}) do
+      local entrance = rail.get_rail_segment_signal(d, true)
+      if entrance and entrance.unit_number == sig.unit_number then return rail, d, true end
+      local exit = rail.get_rail_segment_signal(d, false)
+      if exit and exit.unit_number == sig.unit_number then return rail, d, false end
+    end
+  end
+end
+-- segment length: rail.get_rail_segment_length(); next rail: rail.get_rail_segment_end(dir), then
+-- end_rail.get_connected_rail{rail_direction = end_dir, rail_connection_direction = ...}
+-- switch: more than one connected rail at one end; crossing: #rail.get_rail_segment_overlaps() > 0
+-- signals guarding a block: rail.get_inbound_signals() / rail.get_outbound_signals()
+```
+
+A segment ends at switches, signals **and train stops**; a block only at signals – walk segments
+until `get_rail_segment_signal(dir, false)` returns a signal.
+
+**Tools in this skill:** `scripts/signal-audit.sh SAVE.zip [MIN_LENGTH] [SURFACE]` loads a save
+headless and lists rail signals in front of junctions, blocks shorter than `MIN_LENGTH` and
+double signals, each as `[gps=x,y,surface]` (paste into the game chat to jump there). The library
+`scripts/templates/signal-audit-mod/signal-blocks.lua` has `audit()` and `fit()` – `fit()` merges
+too short blocks when a mod or scenario builds tracks by script: from the start of each signal
+row **in direction of travel** (thinning in arbitrary order leaves one direction with too few
+signals), never removing exits, with `keep(sig)` to protect blueprint junctions.
 
 ---
 

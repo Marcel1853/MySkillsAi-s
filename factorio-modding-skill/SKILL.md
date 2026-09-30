@@ -104,6 +104,8 @@ When the user asks about Factorio modding:
 4. **Follow the Data Lifecycle** — understand which file runs when (see `references/data-lifecycle.md`)
 5. **⚠️ Verify against live docs** — If any API seems uncertain, check [lua-api.factorio.com/latest/](https://lua-api.factorio.com/latest/) before using
 6. **Test headless** and lint before handing over (`scripts/headless-test.sh`, `scripts/lint.sh`); package with `scripts/package.sh`
+   - Mods or scenarios that build rails: check the signals of a save with `scripts/signal-audit.sh`
+     (chain signal in, rail signal out, blocks that hold the longest train; see `10-trains.md`)
 7. **Starting a new mod project?** Put a `CLAUDE.md` with the project rules into the mod folder —
    take `scripts/templates/CLAUDE.md` as the base, then go through it **with the user** and adapt
    it: their language for the locale, their performance limits, their release process. Delete what
@@ -141,7 +143,7 @@ When the user asks about Factorio modding:
 ### 🚂 Trains & Rendering
 | Reference | Description |
 |-----------|-------------|
-| [10-trains.md](references/10-trains.md) | **Zug-System 2.1:** `LuaSchedule`-API, Schedule-Interrupts, Train-Groups, Wait-Conditions (`full`/`empty`/`time`/`inactivity`/`circuit`), `LuaTrain`, `LuaLocomotive` |
+| [10-trains.md](references/10-trains.md) | **Zug-System 2.1:** `LuaSchedule`-API, Schedule-Interrupts, Train-Groups, Wait-Conditions (`full`/`empty`/`time`/`inactivity`/`circuit`), `LuaTrain`, `LuaLocomotive`, **Signale/Blöcke/Zuglängen** (Kettensignal rein, normales raus, Block ≥ längster Zug, Segment-API) |
 | [rendering-api.md](references/rendering-api.md) | Visualisierung: `rendering.draw_line/circle/text/sprite/animation`, persistente Render-Objekte, `time_to_live`, Draw-on-Ground, Farben und Scale |
 
 ### 🎨 Graphics & Locale
@@ -153,8 +155,8 @@ When the user asks about Factorio modding:
 ### 🧪 Testing, Publishing & Pitfalls (from a real project, 2.1.19)
 | Reference | Description |
 |-----------|-------------|
-| [14-testing-and-publishing.md](references/14-testing-and-publishing.md) | Headless-Tests mit eigenem Datenordner, UPS messen (`--benchmark-verbose all`), Lint wie VS Code (FMTK), Packen, Name/Changelog/Thumbnail-Regeln, Mod-Portal (Kategorie, Tags, API, Upload), GitHub-Workflow + Release, Screenshots mit Grafik (sicher!), Tipps & Tricks mit Szenen, Headless-Szenarien (server-settings, stdin), Fehlersuche im Log, Abhängigkeits-Präfixe, Portal-API (Beschreibung, Versionsliste hinkt) |
-| [15-pitfalls.md](references/15-pitfalls.md) | **Geprüfte Stolperfallen:** storage/LuaObjects, `require`, Szenario-Reihenfolge, `-0`, GUI-Abstände, Schaltungs-Panel, Züge (temporäre Halte, Wegpunkte, Wartebedingungen), Greifarm-Richtung, Kabelreichweite, Pumpen/Tanks an Flüssigkeitswagen, Gleisgeometrie, `fuel_categories` statt `fuel_category`, `game.train_manager.get_trains` |
+| [14-testing-and-publishing.md](references/14-testing-and-publishing.md) | Headless-Tests mit eigenem Datenordner, UPS messen (`--benchmark-verbose all`), Lint wie VS Code (FMTK), Packen, Name/Changelog/Thumbnail-Regeln, Mod-Portal (Kategorie, Tags, API, Upload), GitHub-Workflow + Release, Screenshots mit Grafik (sicher!), Tipps & Tricks mit Szenen, Headless-Szenarien (server-settings, stdin), Fehlersuche im Log, Abhängigkeits-Präfixe, Portal-API (Beschreibung, Versionsliste hinkt), **Testläufe zählen und bündeln** (parallel, `test-all.sh`), Szenario ohne Spieler prüfen, fremde Schnittstelle nachbilden |
+| [15-pitfalls.md](references/15-pitfalls.md) | **Geprüfte Stolperfallen:** storage/LuaObjects, `require`, Szenario-Reihenfolge, `-0`, GUI-Abstände, Schaltungs-Panel, Züge (temporäre Halte, Wegpunkte, Wartebedingungen), Greifarm-Richtung, Kabelreichweite, Pumpen/Tanks an Flüssigkeitswagen, Gleisgeometrie, `fuel_categories` statt `fuel_category`, `game.train_manager.get_trains`, **Gleise per `get_rail_extensions` anbauen**, Weg zwischen zwei Haltestellen (`starts`), `train_state` in 2.1 (kein `path_lost`), Abfahrt vs. `no_path`, Strommasten ohne Kupferkabel, **Space Exploration** (Aufzug, Schnittstelle, Headless-Grenzen) |
 
 ### 🤖 AI Personas
 | Reference | Description |

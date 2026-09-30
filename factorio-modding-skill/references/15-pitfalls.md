@@ -52,6 +52,15 @@
 | Eigenen Setzversuch abräumen | Zerstört man einen Wagen, der sich an einen fremden Zug gehängt hat, wird **dieser geteilt und steht danach im Handbetrieb**. Deshalb nie ohne `auto_connect = false` bauen. |
 | Fahrzeug unter einem Hochgleis | Lässt sich nicht setzen (`create_entity` liefert nil, ohne Meldung) → Stelle 2 Felder weiter versuchen und den Fehlversuch zählen, sonst entstehen still zu kurze Züge. |
 | Wagenslots filtern | `inventory.set_filter(slot, {name = …, quality = "normal", comparator = "="})` liefert **false**, wenn der Slot belegt ist → `sort_and_merge()` vorher, später nachbessern. `set_bar(n)` sperrt den Rest (Greifarme respektieren beides, Script-`insert` nicht immer). Eigene Filter des Spielers an `is_filtered()`/`get_bar()` erkennen und in Ruhe lassen. |
+| Signal hängt genau auf einem Weichengleis | `sig.get_connected_rails()` liefert dann das Gleis *hinter* dem Signal: dort ist es der **Eingang** des Segments (`get_rail_segment_signal(dir, true)`), nicht der Ausgang – beides prüfen, sonst ist jedes zweite Signal „nicht messbar“. |
+| Zu kurze Blöcke in beliebiger Reihenfolge zusammenlegen | Eine Richtung behält zu wenige Signale (im Lasttest: nach Westen 3, nach Osten 4). Immer vom Anfang einer Signalreihe **in Fahrtrichtung** arbeiten (`signal-blocks.lua` `fit()`). |
+| Kettensignal-Regel nur mit Weichen geprüft | Gleiskreuzungen ohne Weiche gehören auch dazu: `#rail.get_rail_segment_overlaps() > 0`. |
+| `defines.train_state.path_lost` | Gibt es in 2.1 **nicht**. Zustände: `on_the_path`, `no_schedule`, `no_path`, `arrive_signal`, `wait_signal`, `arrive_station`, `wait_station`, `manual_control_stop`, `manual_control`, `destination_full`. Ein fehlender Name als Tabellenschlüssel (`{[S.path_lost] = true}`) ist ein **Laufzeitfehler** („table index is nil“) – der Lint meldet ihn als `undefined-field`. |
+| Abfahrt geht verloren | Ein Zug kann direkt von `wait_station` nach `no_path` wechseln (nächster Halt unerreichbar). Wer in `on_train_changed_state` zuerst `no_path` behandelt und `return`t, verpasst die Abfahrt (`event.old_state == wait_station`) – Lieferungen hängen dann für immer. Erst die Abfahrt verbuchen, dann warnen. |
+| Weg von Haltestelle zu Haltestelle | `request_train_path{train = t, starts = {{rail = stop.connected_rail, direction = stop.connected_rail_direction, is_front = true}}, goals = {{train_stop = ziel}}}` – Start an einer beliebigen Haltestelle statt an der Zugposition. Züge mit Loks an beiden Enden: zweiten Start mit der Gegenrichtung dazu. Für Fahrten mit mehreren Halten jeden Abschnitt prüfen, sonst hängt der Zug zwischen zwei erreichbaren Zielen (auf einer geraden Strecke kann er nicht wenden). |
+| Gleise an ein beliebiges Gleisende anbauen | `rail_end.get_rail_extensions("rail")` (Planer-Item, z. B. `se-space-rail` im SE-Orbit) liefert je Möglichkeit `name`, `position`, `direction` und `goal` (RailLocation) – genau die Bauangaben des Gleisplaners. Wunschrichtung = `goal.direction` (16 Richtungen, ±1 = 22,5°, 90° = 4 Schritte). Nach `create_entity` mit `rail_end.make_copy().move_forward(conn)` weiterlaufen. Offene Enden finden: für jedes Ende `make_copy().move_forward(straight/left/right)` – alle `false` = offen. Vorlage: `scripts/templates/track-builder/`. |
+| Anschluss Gerade → Kurve | Folgt auf ein gerades Gleis eine Kurve, meldet `move_forward` den Anschluss als `left`/`right`, nicht `straight` – beim Prüfen „verbunden?“ alle drei Richtungen probieren. |
+| Signal und Haltestelle am Gleisende setzen | Signal: `rail_end.out_signal_location` (Position und Richtung, rechts in Fahrtrichtung). Haltestelle: Endpunkt + 2 Felder nach rechts, `direction` = Fahrtrichtung (Osten → +y, Westen → −y, Norden → +x, Süden → −x). |
 
 ## Entities, Kabel, Flüssigkeiten
 
@@ -70,6 +79,9 @@
 | Unendlich-Kiste prüfen | Sie füllt sich erst über ein paar Ticks – direkt nach `create_entity` ist sie leer. Erst nach ~100 Ticks prüfen. |
 | Greifarm-Filter aus dem Schaltnetz | `inserter.use_filters = true` **und** `control_behavior.circuit_set_filters = true`; dann setzt das Netz die Filter. Praktisch, wenn ein Zug nur bestimmte Waren annimmt. |
 | Eigenes Signal in einen Konstant-Kombinator schreiben | Bei `min ≠ 0` braucht der Eintrag `quality = "normal"` **und** `comparator = "="`, sonst: „Can't specify non zero request with non trivial item filter condition“. Also `section.set_slot(i, {value = {type = "virtual", name = …, quality = "normal", comparator = "="}, min = n})`. |
+| Strommasten per Script | Verbinden sich **nicht** von selbst mit Kupferkabel: nur der Mast neben der Energiequelle hat Strom. `mast.get_wire_connector(defines.wire_connector_id.pole_copper, true).connect_to(vorheriger…)` ausdrücklich ziehen. |
+| `create_entity{…, raise_built = true}` liefert nil | Passiert, wenn ein Mod das Objekt im Bau-Event wieder abreißt (z. B. SE bei ungültigem Aufzug). Rückgabe prüfen; zum Untersuchen ohne `raise_built` erzeugen und danach `script.raise_script_built{entity = e}` – dann ist `e.valid` hinterher aussagekräftig. |
+| Combinator/Haltestelle mit `raise_built = true` erzeugen und **danach** verkabeln | Der Mod sieht beim Bau-Event noch kein Kabel und ordnet falsch oder erst später zu (im Lasttest: 96 Warnungen „kein Depot“). Ohne `raise_built` erzeugen, verkabeln, dann `script.raise_script_built({entity = e})`. |
 
 ## Blaupausen per Script bauen
 
@@ -170,3 +182,16 @@ surface.clear_territory_for_chunks(chunks)          -- Demolisher-Reviere leeren
 ```
 
 Headless geprüft: danach 0 Gegner und 0 Reviere auf Nauvis, Vulcanus und Gleba.
+
+## Space Exploration 0.7.62 (gelesen und im Spiel geprüft, 30.09.2026)
+
+| Punkt | Befund |
+|---|---|
+| Verträglichkeit | SE hat `! space-age` – nur ohne Space Age (auch Quality, Elevated Rails, Recycler aus). Tests in eigenem Mod-Ordner mit eigener `mod-list.json`. |
+| Aufzug nur mit Spielern | SE baut Aufzüge nur für Teams mit Spielern (`storage.forces[…].has_players`, gesetzt bei `on_player_created`). Headless (`--benchmark`, Server ohne Client) lehnt SE jeden Aufzug ab → dort mit einer nachgebildeten Schnittstelle testen (siehe 14-testing), echter Test nur grafisch. |
+| Fahrten zwischen Oberflächen freischalten | `remote.call("space-exploration", "launch_satellite", {force_name = f, surface = s, count = 2})`. |
+| Orbit-Oberfläche | `get_zone_from_name{zone_name = "Nauvis Orbit"}` → `zone_get_make_surface{zone_index = z.index}`. Um (0, 0) liegt im Orbit Plattform – Aufzug weiter draußen setzen. Gleise im Orbit: Planer `se-space-rail` auf `se-space-platform-scaffold`. |
+| Aufzug fertig/Strom | Bauteile = `main.products_finished` der Planeten-Seite (Bedarf 0,2 × Planetenradius, Verbrauch 0,1/s); Strom über die Unter-Entity `se-space-elevator-energy-interface` (`energy` setzen). Status: `get_space_elevator_info{unit_number}` → `{main, train_stop, opposite, constructed, powered}`. |
+| Gleise am Aufzug (Richtung Ost) | Einfahrt von Westen, Ausfahrt nach Osten, beide auf Höhe Mitte + 3; innen Legacy-Gleise `se-space-elevator-legacy-*`. Mit `get_rail_extensions` an die offenen Enden anbauen statt Koordinaten zu raten. |
+| Ereignisse | `get_on_train_teleport_started_event`, `…_finished_event` (Daten: `train`, `old_train_id_1`, `old_surface_index`, `teleporter`, `stranded`), `get_on_space_elevator_changed_state_event` (`primary`, `constructed`, `powered`). IDs per `remote.call` holen – in `on_init` **und** `on_load`. |
+| Durchfahren | Neuer Zug mit **neuer ID** auf der anderen Seite, Wagen für Wagen (jeder Zwischenstand löst `on_train_created` aus). SE löscht alle `rail`-Einträge im Fahrplan und den temporären Aufzug-Halt; Handbetrieb kurz während des Umbaus; `stranded` = Zug zerrissen. Hinter dem Aufzug nur Stations-Einträge planen, Wegpunkte nach „finished“ wieder setzen. |

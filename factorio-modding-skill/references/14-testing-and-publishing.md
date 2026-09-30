@@ -227,6 +227,8 @@ show_gui=…, show_entity_info=true, daytime=0, path="shots/01-name.jpg"}` aufru
 | `scripts/generate_mod.py` | Mod-Gerüst inkl. `.gitignore`, `tools/package.sh`, Workflow |
 | `scripts/templates/explain-panel/` | Erklärfenster für Szenarien: Schritte, Kamera am Objekt, Zähler, verschiebbar und einklappbar (nur Vanilla-Stile) |
 | `scripts/templates/CLAUDE.md` | Vorlage für die Projektregeln im Mod-Ordner (Quellen, Code, Leistung, Tests, Release) – anpassen, nicht einfach übernehmen |
+| `scripts/templates/track-builder/` | Gleisleger: Gleise per `LuaRailEnd.get_rail_extensions` an beliebige offene Enden anbauen, Kurven, Signale, Haltestellen, Schleife schließen |
+| `scripts/templates/fake-remote-test/` | Anleitung: Schnittstelle einer fremden Mod headless nachbilden (z. B. SE ohne Spieler) |
 | `scripts/gen_defines_reference.py` | erzeugt `references/09-defines.md` neu aus der offiziellen API (bei neuen Factorio-Versionen ausführen) |
 
 ## Headless-Szenarien und Fehlersuche im Log (im Spiel geprüft, 2.1)
@@ -263,3 +265,22 @@ show_gui=…, show_entity_info=true, daytime=0, path="shots/01-name.jpg"}` aufru
 - **Workflow-Dateien pushen**: Ein über `gh` erzeugtes HTTPS-Token hat meist keinen `workflow`-
   Scope – der Push wird abgelehnt („refusing to allow an OAuth App to create or update workflow“).
   Über SSH (`git push git@github.com:<user>/<repo>.git …`) geht es, wenn ein Schlüssel hinterlegt ist.
+
+## Testläufe zählen und bündeln (im Projekt geprüft)
+
+- **Ergebnisse immer aus der Ausgabe dieses Laufs zählen.** Ein Testscript, das seine Zeilen nur
+  ausgibt, lässt alte Ergebnisdateien liegen – wer die zählt, meldet einen Stand, der nicht geprüft
+  wurde. Das Script sollte die `[TAG] PASS/FAIL`-Zeilen selbst ausgeben und bei FAIL mit Exit 1
+  enden.
+- **Alle Prüfungen in einem Script bündeln** (im Projekt `tools/test-all.sh`): Lint je Ordner, dann
+  die Spieltests **parallel** (jeder in eigenem `mktemp`-Datenordner, das geht gleichzeitig), eine
+  Zeile je Prüfung, Exit 1 bei einem Fehler. Drei Headless-Tests brauchten so gut 1 Minute statt 3.
+- **Szenario-Script ohne Spieler auf Fehler prüfen:** `factorio --start-server-load-scenario
+  <mod>/<szenario> --port 34299` mit `timeout 60` – lädt das Szenario und meldet Syntax- und
+  Ladefehler. `on_player_created` kommt dabei nicht (kein Spieler).
+- **Grafischer Start über Steam:** Mal startet Steam das Spiel direkt, mal nach der Freigabe neu.
+  Ein Script, das auf das Ende des ersten Aufrufs wartet, hängt im ersten Fall bis zum Beenden des
+  Spiels. Immer im Hintergrund starten und das Log abfragen.
+- **Lint und `remote.call`:** Rückgaben haben keinen Typ → `local x = remote.call(…) --[[@as table]]`.
+  `game.forces.player`/`game.surfaces.nauvis` meldet der Lint als unbekanntes Feld →
+  `game.forces["player"]`.

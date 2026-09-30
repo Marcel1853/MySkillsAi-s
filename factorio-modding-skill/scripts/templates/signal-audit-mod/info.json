@@ -1,0 +1,9 @@
+{
+  "name": "signal-audit",
+  "version": "0.0.1",
+  "factorio_version": "2.1",
+  "title": "Signal audit (test helper)",
+  "author": "test",
+  "description": "Prüft Zugsignale eines Spielstands headless; wird von scripts/signal-audit.sh benutzt.",
+  "dependencies": ["base"]
+}
