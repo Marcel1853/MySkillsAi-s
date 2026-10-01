@@ -316,7 +316,8 @@ script.on_nth_tick(600, function(event)
   if not storage.config.auto_dispatch then return end
 
   for _, surface in pairs(game.surfaces) do
-    local trains = surface.get_trains()
+    -- 2.x: Züge gibt es über den Train-Manager (LuaSurface.get_trains gibt es nicht mehr)
+    local trains = game.train_manager.get_trains({ surface = surface })
     for _, train in pairs(trains) do
       -- Prüfen ob Zug am Bahnhof wartet
       if train.state == defines.train_state.wait_station then

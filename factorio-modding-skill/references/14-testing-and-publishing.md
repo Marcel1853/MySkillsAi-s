@@ -233,6 +233,7 @@ show_gui=…, show_entity_info=true, daytime=0, path="shots/01-name.jpg"}` aufru
 | `scripts/scenario-check.sh` | Szenario ohne Spieler als Server laden und auf Fehler prüfen |
 | `scripts/play-with-mods.sh` | Spiel mit eigenem Mod-Satz im Hintergrund starten (normale Mod-Liste bleibt) |
 | `scripts/blueprint2lua.py` | Blaupausen-Text → Lua-Tabelle für Szenarien/Testmods |
+| `scripts/check-examples.py` | jedes Beispiel aus `examples/` headless als eigene Mod laden und kurz laufen lassen |
 | `scripts/templates/docs/` | Vorlagen `PLAN.md`, `IDEAS.md`, `DISCUSSION.md`, `plans/README.md` (siehe `16-project-workflow.md`) |
 | `scripts/templates/track-builder/` | Gleisleger: Gleise per `LuaRailEnd.get_rail_extensions` an beliebige offene Enden anbauen, Kurven, Signale, Haltestellen, Schleife schließen |
 | `scripts/templates/fake-remote-test/` | Anleitung: Schnittstelle einer fremden Mod headless nachbilden (z. B. SE ohne Spieler) |

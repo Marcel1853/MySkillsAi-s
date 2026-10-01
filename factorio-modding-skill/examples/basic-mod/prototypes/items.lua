@@ -6,7 +6,7 @@ data:extend({
   {
     type = "item",
     name = "crystal-ore",
-    icon = "__crystal-tech__/graphics/icons/crystal-ore.png",
+    icon = "__base__/graphics/icons/uranium-ore.png",
     icon_size = 64,
     subgroup = "raw-resource",
     order = "a[crystal-ore]",
@@ -18,7 +18,7 @@ data:extend({
   {
     type = "item",
     name = "refined-crystal",
-    icon = "__crystal-tech__/graphics/icons/refined-crystal.png",
+    icon = "__base__/graphics/icons/plastic-bar.png",
     icon_size = 64,
     subgroup = "raw-material",
     order = "b[refined-crystal]",
@@ -30,7 +30,7 @@ data:extend({
   {
     type = "item",
     name = "crystal-processor",
-    icon = "__crystal-tech__/graphics/icons/crystal-processor.png",
+    icon = "__base__/graphics/icons/processing-unit.png",
     icon_size = 64,
     subgroup = "intermediate-product",
     order = "c[crystal-processor]",
@@ -42,7 +42,7 @@ data:extend({
   {
     type = "item",
     name = "crystal-furnace",
-    icon = "__crystal-tech__/graphics/icons/crystal-furnace.png",
+    icon = "__base__/graphics/icons/steel-furnace.png",
     icon_size = 64,
     subgroup = "smelting-machine",
     order = "d[crystal-furnace]",

@@ -6,7 +6,7 @@ data:extend({
   {
     type = "item",
     name = "quantum-crystal",
-    icon = "__crystal-tech__/graphics/icons/quantum-crystal.png",
+    icon = "__base__/graphics/icons/uranium-235.png",
     icon_size = 64,
     subgroup = "intermediate-product",
     order = "e[quantum-crystal]",
@@ -26,8 +26,8 @@ data:extend({
     enabled = false,
     energy_required = 5.0,
     ingredients = {
-      {"refined-crystal", 2},
-      {"processing-unit", 1},
+      { type = "item", name = "refined-crystal", amount = 2 },
+      { type = "item", name = "processing-unit", amount = 1 },
     },
     results = {
       {type = "item", name = "quantum-crystal", amount = 1, ignored_by_quality = {"quality"}},

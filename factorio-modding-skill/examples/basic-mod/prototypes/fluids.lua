@@ -5,7 +5,7 @@ data:extend({
   {
     type = "fluid",
     name = "molten-crystal",
-    icon = "__crystal-tech__/graphics/icons/molten-crystal.png",
+    icon = "__base__/graphics/icons/fluid/crude-oil.png",
     icon_size = 64,
     default_temperature = 500,
     max_temperature = 1000,

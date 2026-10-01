@@ -23,12 +23,12 @@ data:extend({
   {
     type = "recipe",
     name = "crystal-processor-recipe",
-    categories = {"crafting"},
+    categories = {"crafting-with-fluid"}, -- Wasser als Zutat: nur Maschinen mit Rohranschluss
     enabled = false,
     energy_required = 5.0,
     ingredients = {
-      {"refined-crystal", 5},
-      {"copper-cable", 10},
+      { type = "item", name = "refined-crystal", amount = 5 },
+      { type = "item", name = "copper-cable", amount = 10 },
       {type = "fluid", name = "water", amount = 20},
     },
     results = {
@@ -45,7 +45,7 @@ data:extend({
     enabled = false,
     energy_required = 4.0,
     ingredients = {
-      {"crystal-ore", 1},
+      { type = "item", name = "crystal-ore", amount = 1 },
     },
     results = {
       {type = "fluid", name = "molten-crystal", amount = 50},
@@ -64,9 +64,9 @@ data:extend({
     enabled = false,
     energy_required = 10.0,
     ingredients = {
-      {"stone-furnace", 1},
-      {"refined-crystal", 10},
-      {"steel-plate", 5},
+      { type = "item", name = "stone-furnace", amount = 1 },
+      { type = "item", name = "refined-crystal", amount = 10 },
+      { type = "item", name = "steel-plate", amount = 5 },
     },
     results = {
       {type = "item", name = "crystal-furnace", amount = 1},

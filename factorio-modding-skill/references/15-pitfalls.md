@@ -83,6 +83,23 @@
 | `create_entity{…, raise_built = true}` liefert nil | Passiert, wenn ein Mod das Objekt im Bau-Event wieder abreißt (z. B. SE bei ungültigem Aufzug). Rückgabe prüfen; zum Untersuchen ohne `raise_built` erzeugen und danach `script.raise_script_built{entity = e}` – dann ist `e.valid` hinterher aussagekräftig. |
 | Combinator/Haltestelle mit `raise_built = true` erzeugen und **danach** verkabeln | Der Mod sieht beim Bau-Event noch kein Kabel und ordnet falsch oder erst später zu (im Lasttest: 96 Warnungen „kein Depot“). Ohne `raise_built` erzeugen, verkabeln, dann `script.raise_script_built({entity = e})`. |
 
+## Prototypen: Fehler aus alten Beispielen (alle Beispiele des Skills geprüft, 01.10.2026)
+
+| Falle | Richtig |
+|---|---|
+| `setting_type = "runtime"` | Gibt es nicht („Unknown mod setting type“): `"startup"`, `"runtime-global"` oder `"runtime-per-user"`. Im Datenschritt gibt es nur `settings.startup` – Laufzeit-Einstellungen können Prototypen nicht ändern. |
+| Rezept-Zutaten `{"iron-plate", 2}` | 1.x-Format („Value must be a dictionary“). 2.x: `{ type = "item", name = "iron-plate", amount = 2 }`. **Forschungen** behalten das kurze Format in `unit.ingredients`. |
+| Rezept mit Flüssigkeit in `"crafting"` | Fehler beim Laden – Kategorie `"crafting-with-fluid"` (bzw. eine eigene). |
+| `next_upgrade` auf ein größeres Gebäude | „must have the same bounding box“ – nur gleiche Größe. |
+| Forschung `metallurgy` | Gibt es nicht; z. B. `steel-processing`. Voraussetzungen immer in `data.raw.technology` nachsehen. |
+| Komplexe Typen von Grund auf (`cargo-landing-pad`, `asteroid-collector` …) | Pflichtfelder fehlen schnell (`inventory_size`, `graphics_set`). Besser `util.table.deepcopy(data.raw[typ][vorbild])`, dann Name, `minable`, Werte ändern – und das Item dazu anlegen. |
+| Grafiken/Sounds aus nicht vorhandenen Ordnern | Beispiele und Vorlagen auf Dateien des Spiels zeigen lassen (`__base__`, `__space-age__`) oder `graphics_set` per `deepcopy` leihen; eigene Dateien gehören in `graphics/`/`sound/` der Mod. |
+| Asteroiden einer Raumverbindung von Hand | Braucht `spawn_points`. Space Age: `require("__space-age__.prototypes.planet.asteroid-spawn-definitions").spawn_definitions(asteroid_util.nauvis_vulcanus)` – mit zweitem Wert (0.9) für einen Planeten, ohne für die Strecke. |
+| Erz mit eigener Lage-Formel | `require("resource-autoplace").resource_autoplace_settings{ name, order, base_density, … }` (legt die Noise-Ausdrücke an); `autoplace-control` braucht `category = "resource"`; Abbau-Stufen (`stages`, `stage_counts`) passend zu den Bildern. |
+| `LuaSurface.get_trains()` | Gibt es in 2.x nicht: `game.train_manager.get_trains({ surface = s })`. |
+
+Geprüft mit `scripts/check-examples.py` (jedes Beispiel als eigene Mod laden, 300 Ticks).
+
 ## Blaupausen per Script bauen
 
 | Falle | Richtig |

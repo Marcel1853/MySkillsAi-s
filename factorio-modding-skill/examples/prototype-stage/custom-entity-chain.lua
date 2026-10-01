@@ -1,3 +1,4 @@
+local util = require("util")
 -- ============================================================
 -- EXAMPLE: Prototype Stage — Custom Entity with Full Chain
 -- ============================================================
@@ -12,7 +13,7 @@ data:extend({
   {
     type = "item",
     name = "crystal-ore",
-    icon = "__prototype-examples__/graphics/icons/crystal-ore.png",
+    icon = "__base__/graphics/icons/uranium-ore.png",
     icon_size = 64,
     subgroup = "raw-resource",
     order = "z[crystal-ore]",
@@ -24,7 +25,7 @@ data:extend({
   {
     type = "item",
     name = "refined-crystal",
-    icon = "__prototype-examples__/graphics/icons/refined-crystal.png",
+    icon = "__base__/graphics/icons/plastic-bar.png",
     icon_size = 64,
     subgroup = "raw-material",
     order = "z[refined-crystal]",
@@ -36,7 +37,7 @@ data:extend({
   {
     type = "item",
     name = "crystal-processor",
-    icon = "__prototype-examples__/graphics/icons/crystal-processor.png",
+    icon = "__base__/graphics/icons/processing-unit.png",
     icon_size = 64,
     subgroup = "intermediate-product",
     order = "z[crystal-processor]",
@@ -48,7 +49,7 @@ data:extend({
   {
     type = "item",
     name = "crystal-furnace",
-    icon = "__prototype-examples__/graphics/icons/crystal-furnace.png",
+    icon = "__base__/graphics/icons/steel-furnace.png",
     icon_size = 64,
     subgroup = "smelting-machine",
     order = "z[crystal-furnace]",
@@ -63,7 +64,7 @@ data:extend({
   {
     type = "fluid",
     name = "molten-crystal",
-    icon = "__prototype-examples__/graphics/icons/molten-crystal.png",
+    icon = "__base__/graphics/icons/fluid/crude-oil.png",
     icon_size = 64,
     default_temperature = 500,
     max_temperature = 1000,
@@ -98,12 +99,12 @@ data:extend({
   {
     type = "recipe",
     name = "crystal-processor-recipe",
-    categories = {"crafting"},
+    categories = {"crafting-with-fluid"}, -- Wasser als Zutat: nur Maschinen mit Rohranschluss
     enabled = false,  -- unlocked by tech
     energy_required = 5.0,
     ingredients = {
-      {"refined-crystal", 5},
-      {"copper-cable", 10},
+      { type = "item", name = "refined-crystal", amount = 5 },
+      { type = "item", name = "copper-cable", amount = 10 },
       {type = "fluid", name = "water", amount = 20},
     },
     results = {
@@ -120,7 +121,7 @@ data:extend({
     enabled = false,
     energy_required = 4.0,
     ingredients = {
-      {"crystal-ore", 1},
+      { type = "item", name = "crystal-ore", amount = 1 },
     },
     results = {
       {type = "fluid", name = "molten-crystal", amount = 50},
@@ -139,9 +140,9 @@ data:extend({
     enabled = false,
     energy_required = 10.0,
     ingredients = {
-      {"stone-furnace", 1},
-      {"refined-crystal", 10},
-      {"steel-plate", 5},
+      { type = "item", name = "stone-furnace", amount = 1 },
+      { type = "item", name = "refined-crystal", amount = 10 },
+      { type = "item", name = "steel-plate", amount = 5 },
     },
     results = {
       {type = "item", name = "crystal-furnace", amount = 1},
@@ -155,7 +156,7 @@ data:extend({
   {
     type = "furnace",
     name = "crystal-furnace",
-    icon = "__prototype-examples__/graphics/icons/crystal-furnace.png",
+    icon = "__base__/graphics/icons/steel-furnace.png",
     icon_size = 64,
     flags = {"placeable-neutral", "placeable-player", "player-creation"},
     minable = {mining_time = 0.5, result = "crystal-furnace"},
@@ -176,48 +177,14 @@ data:extend({
     source_inventory_size = 1,
     module_slots = 2,
     allowed_effects = {"speed", "productivity", "consumption"},
-    graphics_set = {
-      working_visualisations = {
-        {
-          always_draw = true,
-          animation = {
-            filename = "__prototype-examples__/graphics/entity/crystal-furnace-working.png",
-            width = 87,
-            height = 99,
-            frame_count = 12,
-            line_length = 12,
-            animation_speed = 0.5,
-          },
-        },
-      },
-      animation = {
-        layers = {
-          {
-            filename = "__prototype-examples__/graphics/entity/crystal-furnace.png",
-            width = 87,
-            height = 99,
-            frame_count = 1,
-            shift = {0, 0},
-          },
-          {
-            filename = "__prototype-examples__/graphics/entity/crystal-furnace-shadow.png",
-            width = 111,
-            height = 62,
-            frame_count = 1,
-            shift = {0.8, 0.5},
-            draw_as_shadow = true,
-          },
-        },
-      },
-      fire_glow_flicker_enabled = true,
-    },
+    graphics_set = util.table.deepcopy(data.raw["furnace"]["steel-furnace"].graphics_set), -- Platzhalter: Grafik des Stahlofens
     working_sound = {
       sound = {filename = "__base__/sound/electric-furnace.ogg", volume = 0.5},
       audible_distance_modifier = 0.5,
       max_sounds_per_type = 3,
     },
     fast_replaceable_group = "furnace",
-    next_upgrade = "electric-furnace",
+    -- next_upgrade nur auf ein Gebäude gleicher Größe (2×2 → 3×3 geht nicht)
   },
 })
 
@@ -227,14 +194,14 @@ data:extend({
   {
     type = "technology",
     name = "crystal-processing",
-    icon = "__prototype-examples__/graphics/technology/crystal-processing.png",
+    icon = "__base__/graphics/technology/advanced-material-processing.png",
     icon_size = 256,
     effects = {
       {type = "unlock-recipe", recipe = "crystal-processor-recipe"},
       {type = "unlock-recipe", recipe = "melt-crystal"},
       {type = "unlock-recipe", recipe = "crystal-furnace-recipe"},
     },
-    prerequisites = {"metallurgy", "automation"},
+    prerequisites = {"steel-processing", "automation"},
     unit = {
       count = 100,
       ingredients = {

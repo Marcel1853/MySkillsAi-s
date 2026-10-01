@@ -14,7 +14,7 @@ data:extend({
   {
     type = "double-setting",
     name = "crystal-tech-furnace-speed",
-    setting_type = "runtime",
+    setting_type = "runtime-global",
     default_value = 2.0,
     minimum_value = 0.5,
     maximum_value = 10.0,

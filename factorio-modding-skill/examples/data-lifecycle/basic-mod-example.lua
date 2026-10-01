@@ -1,3 +1,4 @@
+local util = require("util")
 -- ============================================================
 -- EXAMPLE: Basic Mod Structure (data lifecycle walkthrough)
 -- ============================================================
@@ -44,11 +45,12 @@ data:extend({
     order = "a",
   },
 
-  -- Runtime setting (changeable during gameplay)
+  -- Startup setting: only startup settings can change prototypes (data stage). Runtime settings
+  -- ("runtime-global" / "runtime-per-user") exist only in control.lua via settings.global/player.
   {
     type = "int-setting",
     name = "basic-mod-machine-speed",
-    setting_type = "runtime",
+    setting_type = "startup",
     default_value = 2,
     minimum_value = 1,
     maximum_value = 10,
@@ -69,7 +71,7 @@ data:extend({
   {
     type = "item",
     name = "basic-mod-gear",
-    icon = "__basic-mod__/graphics/icons/gear.png",
+    icon = "__base__/graphics/icons/iron-gear-wheel.png",
     icon_size = 64,
     subgroup = "intermediate-product",
     order = "z[basic-mod-gear]",
@@ -88,8 +90,8 @@ if enable_machine then
       energy_required = 2.0,
       categories = {"crafting"},
       ingredients = {
-        {"iron-plate", 2},
-        {"copper-plate", 1},
+        { type = "item", name = "iron-plate", amount = 2 },
+        { type = "item", name = "copper-plate", amount = 1 },
       },
       results = {
         {type = "item", name = "basic-mod-gear", amount = 1},
@@ -99,7 +101,7 @@ if enable_machine then
     {
       type = "technology",
       name = "basic-mod-gear-tech",
-      icon = "__basic-mod__/graphics/technology/gear-tech.png",
+      icon = "__base__/graphics/technology/automation-1.png",
       icon_size = 256,
       effects = {
         {type = "unlock-recipe", recipe = "basic-mod-gear-recipe"},
@@ -121,7 +123,7 @@ if enable_machine then
     {
       type = "assembling-machine",
       name = "basic-mod-super-assembler",
-      icon = "__basic-mod__/graphics/icons/super-assembler.png",
+      icon = "__base__/graphics/icons/assembling-machine-3.png",
       icon_size = 64,
       flags = {"placeable-neutral", "placeable-player", "player-creation"},
       minable = {mining_time = 1.0, result = "basic-mod-super-assembler"},
@@ -139,22 +141,14 @@ if enable_machine then
       allowed_effects = {"speed", "productivity", "consumption", "pollution"},
       collision_box = {{-1.9, -1.9}, {1.9, 1.9}},
       selection_box = {{-2.0, -2.0}, {2.0, 2.0}},
-      graphics_set = {
-        animation = {
-          filename = "__basic-mod__/graphics/entity/super-assembler.png",
-          width = 128,
-          height = 128,
-          frame_count = 1,
-          direction_count = 4,
-        },
-      },
+      graphics_set = util.table.deepcopy(data.raw["assembling-machine"]["assembling-machine-3"].graphics_set), -- Platzhalter
       fast_replaceable_group = "assembling-machine",
       next_upgrade = nil,
     },
     {
       type = "item",
       name = "basic-mod-super-assembler",
-      icon = "__basic-mod__/graphics/icons/super-assembler.png",
+      icon = "__base__/graphics/icons/assembling-machine-3.png",
       icon_size = 64,
       subgroup = "production-machine",
       order = "z[basic-mod-super-assembler]",
@@ -168,9 +162,9 @@ if enable_machine then
       energy_required = 10.0,
       categories = {"crafting"},
       ingredients = {
-        {"assembling-machine-3", 1},
-        {"basic-mod-gear", 10},
-        {"processing-unit", 5},
+        { type = "item", name = "assembling-machine-3", amount = 1 },
+        { type = "item", name = "basic-mod-gear", amount = 10 },
+        { type = "item", name = "processing-unit", amount = 5 },
       },
       results = {
         {type = "item", name = "basic-mod-super-assembler", amount = 1},
@@ -184,8 +178,8 @@ end
 -- ============================================================
 -- Modify prototypes defined by base game or other mods
 
--- Increase assembler 3 speed based on our runtime setting
-local speed_mult = settings.global and settings.global["basic-mod-machine-speed"]
+-- Increase assembler 3 speed based on our startup setting (settings.global does not exist here)
+local speed_mult = settings.startup["basic-mod-machine-speed"]
 if speed_mult then
   if data.raw["assembling-machine"]["assembling-machine-3"] then
     local base_speed = data.raw["assembling-machine"]["assembling-machine-3"].crafting_speed
@@ -195,7 +189,7 @@ end
 
 -- Add our gear as an ingredient to an existing recipe
 if data.raw.recipe["electronic-circuit"] then
-  -- table.insert(data.raw.recipe["electronic-circuit"].ingredients, {"basic-mod-gear", 1})
+  -- table.insert(data.raw.recipe["electronic-circuit"].ingredients, { type = "item", name = "basic-mod-gear", amount = 1 })
   -- (Commented out — just showing the pattern)
 end
 

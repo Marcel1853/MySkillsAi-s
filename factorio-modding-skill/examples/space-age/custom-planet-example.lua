@@ -1,3 +1,4 @@
+local util = require("util")
 -- ============================================================
 -- EXAMPLE: Space Age — Custom Planet with Space Location
 -- ============================================================
@@ -10,6 +11,7 @@
 local asteroid_util = require("__space-age__.prototypes.planet.asteroid-spawn-definitions")
 local effects = require("__core__.lualib.surface-render-parameter-effects")
 local planet_map_gen = require("__space-age__.prototypes.planet.planet-map-gen")
+local resource_autoplace = require("resource-autoplace") -- __core__/lualib, wie die Erze des Spiels
 
 -- ===== SURFACE PROPERTY (if you want a custom one) =====
 -- Note: The built-in ones are: day-night-cycle, magnetic-field, solar-power, pressure, gravity
@@ -21,9 +23,9 @@ data:extend({
   {
     type = "planet",
     name = "ignis",
-    icon = "__space-planet-example__/graphics/icons/ignis.png",
+    icon = "__space-age__/graphics/icons/vulcanus.png",
     icon_size = 256,
-    starmap_icon = "__space-planet-example__/graphics/icons/starmap-ignis.png",
+    starmap_icon = "__space-age__/graphics/icons/starmap-planet-vulcanus.png",
     starmap_icon_size = 512,
     gravity_pull = 15,
     distance = 25,  -- further from nauvis than vulcanus
@@ -44,7 +46,6 @@ data:extend({
     },
     -- Procession catalogue determines visual appearance during travel
     -- Use a custom one or reuse an existing
-    procession_graphic_catalogue = "ignis-catalogue",
     surface_properties = {
       ["day-night-cycle"] = 4 * minute,
       ["magnetic-field"] = 30,
@@ -54,48 +55,22 @@ data:extend({
     },
     asteroid_spawn_influence = 1.5,
     asteroid_spawn_definitions = asteroid_util.spawn_definitions(
-      asteroid_util.vulcanus,  -- base on vulcanus asteroid types
-      0.8
+      asteroid_util.nauvis_vulcanus,  -- asteroid mix of the route nauvis → vulcanus
+      0.9  -- position on that route (0.1 = start, 0.9 = destination), as in space-age/planet.lua
     ),
-    persistent_ambient_sounds = {
-      base_ambience = {filename = "__space-planet-example__/sound/ignis-wind.ogg", volume = 0.8},
-      wind = {filename = "__space-planet-example__/sound/ignis-rumble.ogg", volume = 0.9},
-      crossfade = {
-        order = {"wind", "base_ambience"},
-        curve_type = "cosine",
-        from = {control = 0.35, volume_percentage = 0.0},
-        to = {control = 2, volume_percentage = 100.0},
-      },
-      semi_persistent = {
-        {
-          sound = {variations = {
-            {filename = "__space-planet-example__/sound/eruption-1.ogg", volume = 0.4},
-            {filename = "__space-planet-example__/sound/eruption-2.ogg", volume = 0.5},
-          }},
-          delay_mean_seconds = 20,
-          delay_variance_seconds = 10,
-        },
-      },
-    },
+    -- Geräusche: hier von Vulcanus geliehen (eigene .ogg-Dateien gehören in sound/ der Mod)
+    persistent_ambient_sounds = util.table.deepcopy(data.raw["planet"]["vulcanus"].persistent_ambient_sounds),
     surface_render_parameters = {
       fog = effects.default_fog_effect_properties(),
       day_night_cycle_color_lookup = {
-        {0.00, "__space-planet-example__/graphics/lut/ignis-day.png"},
-        {0.25, "__space-planet-example__/graphics/lut/ignis-sunset.png"},
-        {0.50, "__space-planet-example__/graphics/lut/ignis-night.png"},
-        {0.75, "__space-planet-example__/graphics/lut/ignis-night.png"},
+        {0.00, "__space-age__/graphics/lut/vulcanus-1-day.png"},
+        {0.25, "__space-age__/graphics/lut/vulcanus-1-day.png"},
+        {0.50, "__space-age__/graphics/lut/vulcanus-2-night.png"},
+        {0.75, "__space-age__/graphics/lut/vulcanus-2-night.png"},
       },
     },
   },
 
-  -- Procession catalogue (visual effects during travel)
-  {
-    type = "procession-catalogue",
-    name = "ignis-catalogue",
-    space_catalogue = {
-      procession_graphic = "__space-planet-example__/graphics/entity/space-ignis.png",
-    },
-  },
 })
 
 -- ===== SPACE CONNECTION: Nauvis → Ignis =====
@@ -107,13 +82,8 @@ data:extend({
     from = "nauvis",
     to = "ignis",
     order = "c",
-    asteroid_spawn_definitions = {
-      {probability = 0.15, asteroid = "asteroid-chunk-iron"},
-      {probability = 0.15, asteroid = "asteroid-chunk-copper"},
-      {probability = 0.10, asteroid = "asteroid-chunk-stone"},
-      {probability = 0.10, asteroid = "asteroid-chunk-carbon"},
-      {probability = 0.05, asteroid = "asteroid-chunk-ice"},
-    },
+    -- Asteroiden entlang der Strecke: ohne zweiten Wert gilt die ganze Route (Space Age macht es so)
+    asteroid_spawn_definitions = asteroid_util.spawn_definitions(asteroid_util.nauvis_vulcanus),
   },
 })
 
@@ -123,7 +93,7 @@ data:extend({
   {
     type = "technology",
     name = "ignis-space-travel",
-    icon = "__space-planet-example__/graphics/technology/ignis-travel.png",
+    icon = "__space-age__/graphics/technology/vulcanus.png",
     icon_size = 256,
     effects = {
       {type = "unlock-space-location", space_location = "ignis", use_icon_overlay = true},
@@ -150,7 +120,7 @@ data:extend({
   {
     type = "item",
     name = "ignis-crystal",
-    icon = "__space-planet-example__/graphics/icons/ignis-crystal.png",
+    icon = "__space-age__/graphics/icons/tungsten-ore.png",
     icon_size = 64,
     subgroup = "raw-resource",
     order = "a[ignis-crystal]",
@@ -162,20 +132,25 @@ data:extend({
   {
     type = "resource",
     name = "ignis-crystal",
-    icon = "__space-planet-example__/graphics/icons/ignis-crystal-resource.png",
+    icon = "__space-age__/graphics/icons/tungsten-ore.png",
     icon_size = 64,
     flags = {"placeable-neutral"},
     order = "z",
-    autoplace = {
-      probability_expression = "random_penalty_at(ignis_crystal) * 0.001",
-      richness_expression = "random_penalty_at(ignis_crystal_richness) * 500",
-    },
+    -- Lage über das Werkzeug des Spiels (legt auch die nötigen Noise-Ausdrücke an)
+    autoplace = resource_autoplace.resource_autoplace_settings({
+      name = "ignis-crystal",
+      order = "z",
+      base_density = 2,
+      has_starting_area_placement = false,
+      regular_rq_factor_multiplier = 1.1,
+    }),
     minable = {
       mining_time = 2.0,
       result = "ignis-crystal",
-      minable_sound = {filename = "__space-planet-example__/sound/crystal-mine.ogg"},
     },
-    stage_counts = {0},
+    -- Abbau-Stufen (Bilder je Restmenge): hier vom Wolfram-Erz geliehen
+    stages = util.table.deepcopy(data.raw["resource"]["tungsten-ore"].stages),
+    stage_counts = util.table.deepcopy(data.raw["resource"]["tungsten-ore"].stage_counts),
     map_color = {r = 0.9, g = 0.2, b = 0.3},
     mining_particle = "stone-particle",
     mining_sound = {
@@ -198,7 +173,7 @@ data:extend({
     localised_name = {"autoplace-control-name.ignis-crystal"},
     richness = true,
     order = "z-d",
-    categories = {"resource"},
+    category = "resource",
   },
 })
 
@@ -209,7 +184,7 @@ data:extend({
   {
     type = "assembling-machine",
     name = "pressure-forge",
-    icon = "__space-planet-example__/graphics/icons/pressure-forge.png",
+    icon = "__space-age__/graphics/icons/foundry.png",
     icon_size = 64,
     flags = {"placeable-neutral", "placeable-player", "player-creation"},
     minable = {mining_time = 0.5, result = "pressure-forge"},
@@ -226,15 +201,7 @@ data:extend({
     allowed_effects = {"speed", "productivity", "consumption"},
     collision_box = {{-1.4, -1.4}, {1.4, 1.4}},
     selection_box = {{-1.5, -1.5}, {1.5, 1.5}},
-    graphics_set = {
-      animation = {
-        filename = "__space-planet-example__/graphics/entity/pressure-forge.png",
-        width = 128,
-        height = 128,
-        frame_count = 32,
-        line_length = 8,
-      },
-    },
+    graphics_set = util.table.deepcopy(data.raw["assembling-machine"]["assembling-machine-2"].graphics_set), -- Platzhalter
     -- Special: bonus on high-pressure surfaces
     surface_conditions = {
       {
@@ -247,7 +214,7 @@ data:extend({
   {
     type = "item",
     name = "pressure-forge",
-    icon = "__space-planet-example__/graphics/icons/pressure-forge.png",
+    icon = "__space-age__/graphics/icons/foundry.png",
     icon_size = 64,
     subgroup = "production-machine",
     order = "z[pressure-forge]",
@@ -261,9 +228,9 @@ data:extend({
     energy_required = 15.0,
     categories = {"crafting"},
     ingredients = {
-      {"steel-plate", 20},
-      {"processing-unit", 10},
-      {"ignis-crystal", 5},
+      { type = "item", name = "steel-plate", amount = 20 },
+      { type = "item", name = "processing-unit", amount = 10 },
+      { type = "item", name = "ignis-crystal", amount = 5 },
     },
     results = {
       {type = "item", name = "pressure-forge", amount = 1},
@@ -281,8 +248,8 @@ data:extend({
     enabled = false,
     energy_required = 8.0,
     ingredients = {
-      {"ignis-crystal", 2},
-      {"steel-plate", 5},
+      { type = "item", name = "ignis-crystal", amount = 2 },
+      { type = "item", name = "steel-plate", amount = 5 },
     },
     results = {
       {type = "item", name = "crystal-alloy", amount = 1},
@@ -296,7 +263,7 @@ data:extend({
   {
     type = "item",
     name = "crystal-alloy",
-    icon = "__space-planet-example__/graphics/icons/crystal-alloy.png",
+    icon = "__space-age__/graphics/icons/tungsten-plate.png",
     icon_size = 64,
     subgroup = "raw-material",
     order = "b[crystal-alloy]",
