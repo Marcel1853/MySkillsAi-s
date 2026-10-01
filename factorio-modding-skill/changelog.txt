@@ -1,0 +1,35 @@
+---------------------------------------------------------------------------------------------------
+Version: 1.0.0
+Date: 2026-10-01
+  Features:
+    - First public version.
+    - Project workflow (references/16-project-workflow.md): docs folder with plan, ideas, approved plans, mod portal discussion log, local wiki, screenshots, blueprints to scenarios. Templates in scripts/templates/docs/.
+    - General tools: test-all.sh, compat-test.sh, load-test.sh, scenario-check.sh, play-with-mods.sh, blueprint2lua.py, check-examples.py.
+    - Pitfalls: track builder via LuaRailEnd.get_rail_extensions, path between two stops (starts), train_state in 2.1, lost departure on no_path, power poles without copper wire, Space Exploration (space elevator, interface, headless limits), prototype errors found in old examples.
+    - Templates: track-builder, fake-remote-test.
+    - Skill version line and this changelog; updates are only checked when the user asks.
+  Changes:
+    - CLAUDE.md template extended: docs folder, plans, wiki, bundled tests, portal discussion.
+    - release.yml template on actions/checkout@v5 (Node 24) and ubuntu-24.04.
+  Bugfixes:
+    - All 14 examples load and run in Factorio 2.1 (checked headless): 2.x recipe format, valid setting types, no graphics or sounds from non-existing mods, complex prototypes via deepcopy, real Space Age asteroid and autoplace helpers, train_manager.get_trains.
+---------------------------------------------------------------------------------------------------
+Version: 0.3.0
+Date: 2026-09-27
+  Features:
+    - Lessons from a real project in 14-testing-and-publishing.md and 15-pitfalls.md, CLAUDE.md template.
+    - Explain panel template for scenarios; screenshot template with a full wiki run as example.
+  Changes:
+    - Release workflow template also sets the mod portal description.
+---------------------------------------------------------------------------------------------------
+Version: 0.2.0
+Date: 2026-09-20
+  Features:
+    - Script that regenerates the defines reference from the official API.
+  Changes:
+    - Notes on blueprints and mod settings.
+---------------------------------------------------------------------------------------------------
+Version: 0.1.0
+Date: 2026-07-16
+  Features:
+    - First version: API reference for Factorio 2.1 (2.1.11 stamps), examples, evals.
