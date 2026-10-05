@@ -165,25 +165,28 @@ def generate_mod(mod_name, title, dependencies=None):
         )
 
     # --- Prototype stub files ---
+    # Kein leeres data:extend({}): Factorio bricht das Laden damit ab
+    # ("Invalid array of prototypes", geprüft 2.1.20). Daher nur ein Hinweis als Kommentar.
+    EMPTY_STUB = "-- data:extend({ ... }) – erst eintragen, wenn es Prototypen gibt (leere Liste = Ladefehler).\n"
     # Note: RecipePrototype::category was removed in 2.1, so we use categories instead
     for proto_file, content in [
-        ("prototypes/items.lua", f"-- Items for {mod_name}\ndata:extend({{\n}})\n"),
+        ("prototypes/items.lua", f"-- Items for {mod_name}\n" + EMPTY_STUB),
         (
             "prototypes/recipes.lua",
-            f"-- Recipes for {mod_name}\n-- Note: In 2.1, RecipePrototype::category was removed; use categories instead.\ndata:extend({{\n}})\n",
+            f"-- Recipes for {mod_name}\n-- Note: In 2.1, RecipePrototype::category was removed; use categories instead.\n" + EMPTY_STUB,
         ),
-        ("prototypes/entities.lua", f"-- Entities for {mod_name}\ndata:extend({{\n}})\n"),
+        ("prototypes/entities.lua", f"-- Entities for {mod_name}\n" + EMPTY_STUB),
         (
             "prototypes/technologies.lua",
-            f"-- Technologies for {mod_name}\ndata:extend({{\n}})\n",
+            f"-- Technologies for {mod_name}\n" + EMPTY_STUB,
         ),
         (
             "prototypes/space-age/planets.lua",
-            f"-- Space Age planets for {mod_name}\n-- Only loaded when space-age mod is active\ndata:extend({{\n}})\n",
+            f"-- Space Age planets for {mod_name}\n-- Only loaded when space-age mod is active\n" + EMPTY_STUB,
         ),
         (
             "prototypes/space-age/asteroids.lua",
-            f"-- Space Age asteroids for {mod_name}\ndata:extend({{\n}})\n",
+            f"-- Space Age asteroids for {mod_name}\n" + EMPTY_STUB,
         ),
     ]:
         with open(f"{mod_dir}/{proto_file}", "w") as f:

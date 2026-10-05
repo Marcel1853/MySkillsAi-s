@@ -10,7 +10,7 @@ description: >
 
 # Factorio 2.1 + Space Age Modding Skill
 
-**Skill version: 1.0.0 (2026-10-01)** · changes: [changelog.txt](changelog.txt) (Factorio changelog format) ·
+**Skill version: 1.0.1 (2026-10-05)** · changes: [changelog.txt](changelog.txt) (Factorio changelog format) ·
 source: https://github.com/Marcel1853/MySkillsAi-s/tree/main/factorio-modding-skill
 
 > **Updates:** This copy does not update itself, and you do **not** check for updates on your own.

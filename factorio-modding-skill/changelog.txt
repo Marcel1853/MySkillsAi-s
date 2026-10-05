@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.0.1
+Date: 2026-10-05
+  Bugfixes:
+    - generate_mod.py: prototype stub files no longer contain an empty data:extend({}), which stops Factorio 2.1.20 from loading ("Invalid array of prototypes"). The stubs now only hold a comment.
+    - 15-pitfalls.md: empty data:extend({}) added as a pitfall.
+---------------------------------------------------------------------------------------------------
 Version: 1.0.0
 Date: 2026-10-01
   Features:

@@ -96,6 +96,7 @@
 | Grafiken/Sounds aus nicht vorhandenen Ordnern | Beispiele und Vorlagen auf Dateien des Spiels zeigen lassen (`__base__`, `__space-age__`) oder `graphics_set` per `deepcopy` leihen; eigene Dateien gehören in `graphics/`/`sound/` der Mod. |
 | Asteroiden einer Raumverbindung von Hand | Braucht `spawn_points`. Space Age: `require("__space-age__.prototypes.planet.asteroid-spawn-definitions").spawn_definitions(asteroid_util.nauvis_vulcanus)` – mit zweitem Wert (0.9) für einen Planeten, ohne für die Strecke. |
 | Erz mit eigener Lage-Formel | `require("resource-autoplace").resource_autoplace_settings{ name, order, base_density, … }` (legt die Noise-Ausdrücke an); `autoplace-control` braucht `category = "resource"`; Abbau-Stufen (`stages`, `stage_counts`) passend zu den Bildern. |
+| Leeres `data:extend({})` als Platzhalter | Ladefehler „Invalid array of prototypes: {}“ (geprüft 2.1.20). Erst aufrufen, wenn die Liste Prototypen enthält; leere Dateien nur mit Kommentar. |
 | `LuaSurface.get_trains()` | Gibt es in 2.x nicht: `game.train_manager.get_trains({ surface = s })`. |
 
 Geprüft mit `scripts/check-examples.py` (jedes Beispiel als eigene Mod laden, 300 Ticks).
