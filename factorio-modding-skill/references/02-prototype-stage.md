@@ -424,7 +424,7 @@ data:extend({
     },
     results = {
       {type = "item", name = "plastic-bar",        amount = 2},
-      {type = "item", name = "byproduct",          amount = 1, probability = 0.3},
+      {type = "item", name = "byproduct",          amount = 1, independent_probability = 0.3}, -- 2.1: nicht mehr "probability"
       {type = "fluid", name = "waste-water",       amount = 50},
     },
     crafting_machine_tint = {

@@ -139,7 +139,7 @@ proto.type              -- string ("item", "tool", "ammo", etc.)
 proto.stack_size        -- number
 proto.weight            -- number (grams, Space Age)
 proto.place_result      -- string (entity name if placeable)
-proto.fuel_category     -- string or nil
+proto.fuel_categories   -- 2.1: Liste/Tabelle der Kategorien oder nil (proto.fuel_category gibt es nicht mehr – Zugriff wirft einen Fehler)
 proto.fuel_value        -- number (Joules)
 proto.burnt_result      -- string or nil (what it becomes after burning)
 proto.quality           -- string (Space Age)

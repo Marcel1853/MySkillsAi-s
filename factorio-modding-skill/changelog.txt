@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.0.2
+Date: 2026-10-06
+  Bugfixes:
+    - 02-prototype-stage.md: product chance is "independent_probability" in 2.1 ("probability" fails to load).
+    - 08-additional-runtime.md: LuaItemPrototype has fuel_categories in 2.1; fuel_category no longer exists.
+  Changes:
+    - 15-pitfalls.md: independent_probability and ignored_by_productivity, hyphens in noise expressions, names for alternative recipes, heating fluids other than water with a heat exchanger copy.
+---------------------------------------------------------------------------------------------------
 Version: 1.0.1
 Date: 2026-10-05
   Bugfixes:
